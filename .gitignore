@@ -1,0 +1,12 @@
+# Local drag-and-drop deploy bundles — superseded by git-based deploys
+archive/
+*.zip
+
+# Netlify CLI state
+.netlify/
+
+# Editor / OS noise
+.vscode/
+.idea/
+.DS_Store
+*.swp

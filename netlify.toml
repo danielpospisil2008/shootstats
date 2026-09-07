@@ -1,0 +1,20 @@
+# Shootstats is a single self-contained HTML file with no build step:
+# Netlify just publishes the repo root as-is.
+[build]
+  publish = "."
+  command = ""
+
+# index.html must never be cached, or browsers keep serving an old build
+# after a deploy. (This matches Netlify's default for HTML, stated here so
+# it stays true if the default ever changes.)
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "SAMEORIGIN"
+    Referrer-Policy = "strict-origin-when-cross-origin"

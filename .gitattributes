@@ -1,0 +1,6 @@
+# Keep line endings correct regardless of the cloner's core.autocrlf setting.
+* text=auto
+
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.sh  text eol=lf
