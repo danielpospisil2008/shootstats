@@ -1,0 +1,52 @@
+# Manual-only deploy to Firebase Hosting.
+#
+# Run it from GitHub → Actions → "Deploy to Firebase Hosting" → "Run workflow".
+# Nothing deploys on push; this workflow only ever runs when you start it.
+#
+# Requires one repository secret, FIREBASE_SERVICE_ACCOUNT — see the "Deploy"
+# section of README.md for how to create it.
+name: Deploy to Firebase Hosting
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Where to deploy: "live" for production, or any other name (e.g. "test") for a temporary preview URL'
+        required: true
+        default: live
+        type: string
+
+# The deploy reads the repo and talks to Firebase; it needs nothing else.
+permissions:
+  contents: read
+
+# Never let two deploys of the same channel race each other.
+concurrency:
+  group: firebase-hosting-${{ inputs.channel }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy ${{ inputs.channel }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the branch chosen in the Run workflow dialog
+        uses: actions/checkout@v4
+
+      - name: Deploy to Firebase Hosting
+        id: deploy
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: shootstats-f3861
+          channelId: ${{ inputs.channel }}
+          # Ignored for the live channel; preview channels self-destruct after this.
+          expires: 7d
+
+      - name: Report the URL
+        run: |
+          {
+            echo "### Deployed \`${{ inputs.channel }}\` from \`${{ github.ref_name }}\`"
+            echo ""
+            echo "${{ steps.deploy.outputs.urls || 'https://shootstats-f3861.web.app' }}"
+          } >> "$GITHUB_STEP_SUMMARY"

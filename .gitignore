@@ -5,6 +5,12 @@ archive/
 # Netlify CLI state
 .netlify/
 
+# Firebase CLI state
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+*-debug.log
+
 # Editor / OS noise
 .vscode/
 .idea/
