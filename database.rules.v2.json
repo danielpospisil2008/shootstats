@@ -21,7 +21,7 @@
           ".write": "auth != null && auth.uid === $uid",
 
           "photo": {
-            ".validate": "newData.isString() && newData.val().length <= 400000 && newData.val().matches(/^data:image\\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+\\/]+={0,2}$/)"
+            ".validate": "newData.isString() && newData.val().length <= 400000 && newData.val().beginsWith('data:image/') && !newData.val().contains('<') && !newData.val().contains('>') && !newData.val().contains('\"') && !newData.val().contains('(') && !newData.val().contains(')') && !newData.val().contains(' ')"
           },
           "email":     { ".validate": "newData.isString() && newData.val().length <= 320" },
           "firstName": { ".validate": "newData.isString() && newData.val().length <= 100" },
@@ -71,7 +71,7 @@
         "name":  { ".validate": "newData.isString() && newData.val().length <= 120" },
         "code":  { ".validate": "newData.isString() && newData.val().length <= 12" },
         "photo": {
-          ".validate": "newData.isString() && newData.val().length <= 400000 && newData.val().matches(/^data:image\\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+\\/]+={0,2}$/)"
+          ".validate": "newData.isString() && newData.val().length <= 400000 && newData.val().beginsWith('data:image/') && !newData.val().contains('<') && !newData.val().contains('>') && !newData.val().contains('\"') && !newData.val().contains('(') && !newData.val().contains(')') && !newData.val().contains(' ')"
         },
 
         "members": {
