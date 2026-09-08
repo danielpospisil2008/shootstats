@@ -2177,6 +2177,21 @@ function fmtDate(d){
   return `${parseInt(parts[2])}. ${months[parseInt(parts[1])-1]} ${parts[0]}`;
 }
 function escapeHtml(str){ const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+// Profile / group photos are always data: image URLs produced locally by
+// resizeImageFile() (canvas.toDataURL). The field is writable by its owner, so
+// another user (e.g. an athlete a coach is viewing) can put an arbitrary string
+// there. Never interpolate it into markup or a style attribute unvalidated —
+// reject anything that isn't a plain base64 image data URL.
+function safePhotoUrl(photo){
+  return (typeof photo === 'string' &&
+    /^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+\/]+={0,2}$/.test(photo))
+    ? photo : '';
+}
+// CSS background-image value for a photo, safe to drop into a style="" attribute.
+function photoBgCss(photo){
+  const url = safePhotoUrl(photo);
+  return url ? `url("${url}")` : '';
+}
 function filteredSessions(){ return sessions.filter(s => currentFilter==='vse' || s.type===currentFilter); }
 
 function periodFilterItems(items){
@@ -2932,13 +2947,15 @@ document.getElementById('importDataInput').addEventListener('change', async (e)=
 
 function groupAvatarHtml(g, size){
   const cls = 'group-avatar' + (size==='lg' ? ' lg' : '');
-  if(g.photo) return `<div class="${cls}" style="background-image:url(${g.photo})"></div>`;
+  const url = safePhotoUrl(g.photo);
+  if(url) return `<div class="${cls}" style="background-image:url(${url})"></div>`;
   const initial = ((g.name||'').trim()[0] || '?').toUpperCase();
   return `<div class="${cls}">${escapeHtml(initial)}</div>`;
 }
 
 function memberAvatarHtml(photo, label){
-  if(photo) return `<div class="group-avatar sm" style="background-image:url(${photo})"></div>`;
+  const url = safePhotoUrl(photo);
+  if(url) return `<div class="group-avatar sm" style="background-image:url(${url})"></div>`;
   const initial = ((label||'').trim()[0] || '?').toUpperCase();
   return `<div class="group-avatar sm">${escapeHtml(initial)}</div>`;
 }
@@ -3010,7 +3027,7 @@ document.getElementById('newGroupPhotoInput').onchange = async (e)=>{
   try{
     pendingGroupPhoto = await resizeImageFile(file, 240);
     const avatarEl = document.getElementById('newGroupAvatar');
-    avatarEl.style.backgroundImage = `url(${pendingGroupPhoto})`;
+    avatarEl.style.backgroundImage = photoBgCss(pendingGroupPhoto);
     avatarEl.innerHTML = '';
   }catch(err){ /* ignore, just skip the photo */ }
   e.target.value = '';
@@ -3056,15 +3073,18 @@ document.getElementById('joinGroupBtn').onclick = async ()=>{
   try{
     const codeSnap = await fbDb.ref('groupCodes/'+code).once('value');
     const gid = codeSnap.val();
-    if(!gid){ errEl.textContent = t('group_join_error_invalid'); return; }
-    const gsnap = await fbDb.ref('groups/'+gid).once('value');
-    const g = gsnap.val();
-    if(!g){ errEl.textContent = t('group_join_error_invalid'); return; }
-    if(g.ownerUid === currentUser.uid){ errEl.textContent = t('group_join_error_own'); return; }
-    if(g.members && g.members[currentUser.uid]){ errEl.textContent = t('group_join_error_already'); return; }
+    if(!gid || typeof gid !== 'string'){ errEl.textContent = t('group_join_error_invalid'); return; }
+    // A non-member can't read the whole group node (member list is private) —
+    // only groups/$gid/ownerUid is public, which is all the join needs.
+    const ownerSnap = await fbDb.ref('groups/'+gid+'/ownerUid').once('value');
+    const ownerUid = ownerSnap.val();
+    if(!ownerUid){ errEl.textContent = t('group_join_error_invalid'); return; }
+    if(ownerUid === currentUser.uid){ errEl.textContent = t('group_join_error_own'); return; }
+    const mineSnap = await fbDb.ref('users/'+currentUser.uid+'/memberGroups/'+gid).once('value');
+    if(mineSnap.val() === true){ errEl.textContent = t('group_join_error_already'); return; }
     await fbDb.ref('groups/'+gid+'/members/'+currentUser.uid).set(true);
     await fbDb.ref('users/'+currentUser.uid+'/memberGroups/'+gid).set(true);
-    await fbDb.ref('users/'+currentUser.uid+'/coachAccess/'+g.ownerUid).set(true);
+    await fbDb.ref('users/'+currentUser.uid+'/coachAccess/'+ownerUid).set(true);
     input.value = '';
     await loadGroups();
     renderMemberGroups();
@@ -3102,7 +3122,8 @@ async function renderGroupDetail(){
   document.getElementById('groupDetailSavedNote').style.display = 'none';
   document.getElementById('groupDetailTitle').textContent = g.name;
   const avatarEl = document.getElementById('groupDetailAvatar');
-  if(g.photo){ avatarEl.style.backgroundImage = `url(${g.photo})`; avatarEl.textContent = ''; }
+  const gPhotoCss = photoBgCss(g.photo);
+  if(gPhotoCss){ avatarEl.style.backgroundImage = gPhotoCss; avatarEl.textContent = ''; }
   else { avatarEl.style.backgroundImage = ''; avatarEl.textContent = ((g.name||'').trim()[0] || '?').toUpperCase(); }
 
   const nameEl = document.getElementById('groupDetailName');
@@ -3212,7 +3233,7 @@ document.getElementById('groupDetailPhotoInput').onchange = async (e)=>{
   try{
     pendingGroupDetailPhoto = await resizeImageFile(file, 240);
     const avatarEl = document.getElementById('groupDetailAvatar');
-    avatarEl.style.backgroundImage = `url(${pendingGroupDetailPhoto})`;
+    avatarEl.style.backgroundImage = photoBgCss(pendingGroupDetailPhoto);
     avatarEl.textContent = '';
   }catch(err){ /* ignore, just skip the photo */ }
   e.target.value = '';
@@ -3319,8 +3340,9 @@ async function renderAccountSheet(){
   const profile = await fetchProfile(currentUser.uid);
   myProfile = profile;
   const avatar = document.getElementById('profileAvatar');
-  if(profile.photo){
-    avatar.style.backgroundImage = `url(${profile.photo})`;
+  const profilePhotoCss = photoBgCss(profile.photo);
+  if(profilePhotoCss){
+    avatar.style.backgroundImage = profilePhotoCss;
     avatar.textContent = '';
   } else {
     avatar.style.backgroundImage = '';
@@ -3367,7 +3389,7 @@ document.getElementById('photoInput').onchange = async (e)=>{
     const dataUrl = await resizeImageFile(file, 240);
     await fbDb.ref('users/'+currentUser.uid+'/profile').update({ photo: dataUrl });
     const avatar = document.getElementById('profileAvatar');
-    avatar.style.backgroundImage = `url(${dataUrl})`;
+    avatar.style.backgroundImage = photoBgCss(dataUrl);
     avatar.textContent = '';
   }catch(err){ showSyncError(); }
   e.target.value = '';

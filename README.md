@@ -66,6 +66,11 @@ web config ships to every visitor's browser by design, and this repo being publi
 changes nothing about that. What actually protects the data is the Realtime
 Database security rules in the Firebase Console. Keep those tight.
 
+The current ruleset is checked in as `database.rules.v2.json` so it can be
+reviewed and versioned. After editing it, paste it into
+Firebase Console → Realtime Database → Rules (or deploy with the Firebase CLI) —
+the Console is still the source of truth for what's actually enforced.
+
 App Check (reCAPTCHA Enterprise) is wired up but disabled — see the
 `APP_CHECK_ENABLED` comment in `index.html` for why.
 

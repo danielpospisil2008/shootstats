@@ -1,0 +1,94 @@
+{
+  "rules": {
+
+    "users": {
+      "$uid": {
+
+        ".write": "auth != null && auth.uid === $uid && !newData.exists()",
+
+        "sessions": {
+          ".read": "auth != null && (auth.uid === $uid || root.child('users/' + $uid + '/coachAccess/' + auth.uid).val() === true)",
+          ".write": "auth != null && auth.uid === $uid"
+        },
+
+        "settings": {
+          ".read": "auth != null && (auth.uid === $uid || root.child('users/' + $uid + '/coachAccess/' + auth.uid).val() === true)",
+          ".write": "auth != null && auth.uid === $uid"
+        },
+
+        "profile": {
+          ".read": "auth != null && (auth.uid === $uid || root.child('users/' + $uid + '/coachAccess/' + auth.uid).val() === true)",
+          ".write": "auth != null && auth.uid === $uid",
+
+          "photo": {
+            ".validate": "newData.isString() && newData.val().length <= 400000 && newData.val().matches(/^data:image\\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+\\/]+={0,2}$/)"
+          },
+          "email":     { ".validate": "newData.isString() && newData.val().length <= 320" },
+          "firstName": { ".validate": "newData.isString() && newData.val().length <= 100" },
+          "lastName":  { ".validate": "newData.isString() && newData.val().length <= 100" },
+          "dob":       { ".validate": "newData.isString() && newData.val().length <= 40" },
+          "country":   { ".validate": "newData.isString() && newData.val().length <= 100" },
+          "club":      { ".validate": "newData.isString() && newData.val().length <= 120" },
+          "role":      { ".validate": "newData.isString() && newData.val().length <= 40" }
+        },
+
+        "coachAccess": {
+          "$coachUid": {
+            ".read": "auth != null && (auth.uid === $uid || auth.uid === $coachUid)",
+            ".write": "auth != null && (auth.uid === $uid || (auth.uid === $coachUid && !newData.exists()))",
+            ".validate": "newData.val() === true"
+          }
+        },
+
+        "ownedGroups": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && auth.uid === $uid",
+          "$gid": { ".validate": "newData.val() === true" }
+        },
+
+        "memberGroups": {
+          ".read": "auth != null && auth.uid === $uid",
+          "$gid": {
+            ".write": "auth != null && (auth.uid === $uid || (root.child('groups/' + $gid + '/ownerUid').val() === auth.uid && !newData.exists()))",
+            ".validate": "newData.val() === true"
+          }
+        }
+      }
+    },
+
+    "groups": {
+      "$gid": {
+
+        ".read": "auth != null && (data.child('ownerUid').val() === auth.uid || data.child('members/' + auth.uid).val() === true)",
+
+        ".write": "auth != null && (data.exists() ? (data.child('ownerUid').val() === auth.uid && (!newData.exists() || newData.child('ownerUid').val() === auth.uid)) : newData.child('ownerUid').val() === auth.uid)",
+
+        "ownerUid": {
+          ".read": "auth != null",
+          ".validate": "newData.isString() && newData.val().length <= 128"
+        },
+
+        "name":  { ".validate": "newData.isString() && newData.val().length <= 120" },
+        "code":  { ".validate": "newData.isString() && newData.val().length <= 12" },
+        "photo": {
+          ".validate": "newData.isString() && newData.val().length <= 400000 && newData.val().matches(/^data:image\\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+\\/]+={0,2}$/)"
+        },
+
+        "members": {
+          "$memberUid": {
+            ".write": "auth != null && ($memberUid === auth.uid || (root.child('groups/' + $gid + '/ownerUid').val() === auth.uid && !newData.exists()))",
+            ".validate": "newData.val() === true && ($memberUid === auth.uid || data.exists())"
+          }
+        }
+      }
+    },
+
+    "groupCodes": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null && ((!data.exists() && root.child('groups/' + newData.val() + '/ownerUid').val() === auth.uid) || (data.exists() && root.child('groups/' + data.val() + '/ownerUid').val() === auth.uid))",
+        ".validate": "newData.isString() && newData.val().length <= 128"
+      }
+    }
+  }
+}
