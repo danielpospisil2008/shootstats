@@ -10,3 +10,6 @@ archive/
 .idea/
 .DS_Store
 *.swp
+
+# Node — only used for the offline database-rules tests (npm test), never by the app
+node_modules/

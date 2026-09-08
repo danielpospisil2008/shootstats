@@ -71,14 +71,27 @@ reviewed and versioned. After editing it, paste it into
 Firebase Console → Realtime Database → Rules (or deploy with the Firebase CLI) —
 the Console is still the source of truth for what's actually enforced.
 
+`npm test` runs an offline check of that ruleset (who can read/write what) with
+no Firebase connection. Run it after every change to `database.rules.v2.json`.
+This is the *only* thing `npm` is used for — the app itself has no build step and
+no dependencies.
+
+```bash
+npm install   # once
+npm test
+```
+
 App Check (reCAPTCHA Enterprise) is wired up but disabled — see the
 `APP_CHECK_ENABLED` comment in `index.html` for why.
 
 ## Layout
 
 ```
-index.html      the entire app: styles, markup, logic
-dev.sh          local server (Linux/macOS)
-dev.cmd         local server (Windows)
-netlify.toml    Netlify deploy config
+index.html                    the entire app: styles, markup, logic
+dev.sh                         local server (Linux/macOS)
+dev.cmd                        local server (Windows)
+netlify.toml                   Netlify deploy config
+database.rules.v2.json         Realtime Database security rules
+test/database.rules.test.js    offline checks for those rules (npm test)
+GLOSSARY.md                    plain-language explanations of terms used here
 ```
