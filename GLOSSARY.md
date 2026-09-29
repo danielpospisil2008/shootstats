@@ -74,6 +74,13 @@ Služba, která **hostuje** web Shootstats a automaticky ho **nasazuje**: jakmil
 - **Deploy** = zveřejnění nové verze webu.
 - **Deploy preview** = dočasná zvláštní adresa pro větev/PR, kde si změnu vyzkoušíš (třeba na mobilu) dřív, než jde na ostro.
 
+### Free tier / kvóta (bandwidth, storage…)
+„Zdarma" u Netlify i Firebase neznamená „bez limitu" — jde o měsíční **kvótu** (třeba kolik dat se smí za měsíc stáhnout z appky = **bandwidth**, nebo kolik dat smí ležet v databázi = **storage**). Obě služby to sledují nezávisle na sobě a mají **oddělené** kvóty — Netlify hlídá kvótu na doručení `index.html`, Firebase kvótu na databázi. Co se stane po vyčerpání, je u každé jinak — viz [[free-tier-shootstats]] v paměti, nebo se zeptej znovu, ať to ověřím aktuálně (pravidla se v čase mění).
+
+### Spark / Blaze (Firebase plány)
+- **Spark** = bezplatný plán Firebase s pevnou kvótou (aktuálně řádově 1 GB uložených dat, 10 GB stažených za měsíc u Realtime Database). Po vyčerpání appka přestane číst/zapisovat, dokud se kvóta příští měsíc neobnoví.
+- **Blaze** = plán „plať, jen když přerosteš" — do stejné bezplatné kvóty jako Spark je pořád zdarma, nad ní se účtuje. Vyžaduje přidat platební kartu. Výhoda: appka „nezhasne", jen případně začne něco stát.
+
 ---
 
 ## 3. Bezpečnost

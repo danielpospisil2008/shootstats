@@ -13,3 +13,6 @@ archive/
 
 # Node — only used for the offline database-rules tests (npm test), never by the app
 node_modules/
+
+# Working copies of one-off deliverables (e.g. the app-overview page) — not part of the app
+scratch/
