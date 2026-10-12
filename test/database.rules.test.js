@@ -173,6 +173,25 @@ allow('user deletes their own /users/<uid>',
 deny('user deletes another user\'s /users/<uid>',
   freshDb().as(as(COACH)).write(`users/${ATHLETE}`, null));
 
+/* ====================================================================== */
+console.log('\nGroup trainings — private to the coach who recorded them, named, nobody else\'s business');
+
+allow('coach writes their own groupTrainings with a name',
+  freshDb().as(as(COACH)).write(`users/${COACH}/groupTrainings/t1`,
+    { name: 'Pátek večer', date: '2026-10-05', groupId: 'g1', groupName: 'Team', athletes: {} }));
+allow('coach reads their own groupTrainings',
+  freshDb().as(as(COACH)).read(`users/${COACH}/groupTrainings`));
+deny('coach writes groupTrainings with an empty name',
+  freshDb().as(as(COACH)).write(`users/${COACH}/groupTrainings/t1`, { name: '', date: '2026-10-05' }));
+deny('coach writes groupTrainings with no name field at all',
+  freshDb().as(as(COACH)).write(`users/${COACH}/groupTrainings/t1`, { date: '2026-10-05' }));
+deny('someone else writes into a coach\'s groupTrainings',
+  freshDb().as(as(ATHLETE)).write(`users/${COACH}/groupTrainings/t1`, { name: 'Hacked' }));
+deny('linked athlete (has coachAccess) still can\'t read the coach\'s groupTrainings',
+  freshDb().as(as(ATHLETE)).read(`users/${COACH}/groupTrainings`));
+deny('outsider reads a coach\'s groupTrainings',
+  freshDb().as(as(OUTSIDER)).read(`users/${COACH}/groupTrainings`));
+
 /* ---- result ---------------------------------------------------------- */
 console.log(`\n${passed} passed, ${failed} failed\n`);
 process.exit(failed === 0 ? 0 : 1);

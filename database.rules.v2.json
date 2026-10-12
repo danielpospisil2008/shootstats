@@ -52,6 +52,14 @@
             ".write": "auth != null && (auth.uid === $uid || (root.child('groups/' + $gid + '/ownerUid').val() === auth.uid && !newData.exists()))",
             ".validate": "newData.val() === true"
           }
+        },
+
+        "groupTrainings": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && auth.uid === $uid",
+          "$tid": {
+            ".validate": "newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 120"
+          }
         }
       }
     },

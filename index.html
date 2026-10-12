@@ -384,6 +384,39 @@
   .member-acc-stats b{display:block;font-size:12.5px;color:var(--ink);font-weight:700;}
   .member-acc-stats span{display:block;font-size:9px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.02em;margin-top:1px;}
 
+  /* ---------- Live training (coach records bouts during a real session) ---------- */
+  .live-training-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:10px;border-radius:10px;border:1.5px dashed var(--ink);background:none;color:var(--ink);font-family:var(--font-body);font-weight:600;font-size:12.5px;cursor:pointer;margin-bottom:8px;}
+  .live-training-btn:active{background:var(--surface-2);}
+
+  #liveTrainingSheet.open{display:flex;flex-direction:column;top:88px;max-height:none;overflow:hidden;}
+  #liveTrainingAthletes{flex:1;overflow-y:auto;}
+
+  .live-athlete-row{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 11px;margin-bottom:8px;}
+  .live-athlete-row-top{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .live-athlete-row .who{display:flex;align-items:center;gap:9px;min-width:0;flex:1;}
+  .live-athlete-row .who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;}
+  .live-athlete-main{flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
+  .live-shot-btn{padding:9px 14px;border-radius:9px;border:1px solid var(--ink);background:none;color:var(--ink);font-family:var(--font-body);font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;}
+  .live-shot-btn.running,.live-shot-btn.first{background:var(--ink);color:var(--bg);}
+  .live-shot-btn:disabled{opacity:.4;cursor:default;}
+  .live-elapsed{font-family:var(--font-mono);font-size:10.5px;color:var(--ink-soft);}
+  .live-bout-count{font-family:var(--font-mono);font-size:10.5px;color:var(--training);font-weight:600;}
+
+  .live-bouts-list{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+  .live-bout-chip{display:flex;align-items:center;gap:5px;background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:3px 4px 3px 9px;font-family:var(--font-mono);font-size:10.5px;color:var(--ink-soft);cursor:pointer;}
+  .live-bout-chip button{background:none;border:none;color:var(--ink-soft);cursor:pointer;padding:2px;display:flex;}
+
+  .live-clock-pt{cursor:pointer;}
+
+  .live-field-row{display:flex;gap:10px;}
+  .live-field-row .login-field{flex:1;margin-bottom:0;}
+  #liveBoutEditSheet{max-height:calc(100vh - 32px);overflow-y:auto;}
+
+  .live-trainings-list{margin-top:10px;}
+  .live-training-item{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 11px;margin-bottom:7px;cursor:pointer;}
+  .live-training-item-name{font-weight:600;font-size:13.5px;color:var(--ink);}
+  .live-training-item-meta{font-size:11px;color:var(--ink-soft);margin-top:1px;}
+
   /* ---------- Confirm modal ---------- */
   #confirmSheet .clock-btns{margin-top:4px;}
 </style>
@@ -618,6 +651,121 @@
     <button type="button" id="clockReset" data-i18n="btn_reset">Reset</button>
     <button type="button" class="primary" id="clockDone" data-i18n="btn_done">Done</button>
   </div>
+</div>
+
+<!-- Live training: coach records bouts for a group, right during the session -->
+<div class="ov" id="liveTrainingOverlay"></div>
+<div class="panel-bottom" id="liveTrainingSheet">
+  <div class="sheet-head">
+    <h2 data-i18n="live_training_title">Live training</h2>
+  </div>
+
+  <label class="small" data-i18n="live_training_name_label">Training name</label>
+  <input type="text" id="liveTrainingName" data-i18n-ph="live_training_name_placeholder" placeholder="e.g. Friday evening">
+
+  <div id="liveTrainingAthletes" class="field-gap"></div>
+
+  <div class="login-error" id="liveTrainingToast"></div>
+
+  <button type="button" class="save-btn field-gap" id="liveTrainingSaveBtn" data-i18n="live_training_save">Save training</button>
+  <button type="button" class="delete-entry-btn" id="liveTrainingDiscardBtn" data-i18n="live_training_discard" style="display:none;">Discard training</button>
+</div>
+
+<!-- Live training: pick miss count for the bout just finished -->
+<div class="ov top" id="liveBoutScoreOverlay"></div>
+<div class="panel-center" id="liveBoutScoreSheet">
+  <div class="sheet-head">
+    <h2 style="font-size:16px;" data-i18n="lbl_success">Misses (0 = 5/5)</h2>
+    <button class="close-btn" id="liveBoutScoreClose">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <div class="row6" id="liveBoutScoreRow"></div>
+  <button type="button" class="save-btn field-gap" id="liveBoutScoreSaveBtn" data-i18n="live_bout_quick_save">Save</button>
+</div>
+
+<!-- Live training: pick where on the clock face the misses landed -->
+<div class="ov top" id="liveBoutClockOverlay"></div>
+<div class="panel-center" id="liveBoutClockSheet">
+  <div class="sheet-head">
+    <h2 style="font-size:16px;" data-i18n="clock_title">Shot positions</h2>
+    <button class="close-btn" id="liveBoutClockClose">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <div class="clock-wrap"><svg id="liveBoutClockSvg" width="220" height="220" viewBox="0 0 220 220"></svg></div>
+  <div class="clock-count"><span data-i18n="clock_count_label">Marked</span>: <b id="liveBoutClockCount">0</b>/<span id="liveBoutClockMax">5</span></div>
+  <div class="clock-btns">
+    <button type="button" id="liveBoutClockReset" data-i18n="btn_reset">Reset</button>
+    <button type="button" class="primary" id="liveBoutClockDone" data-i18n="btn_done">Done</button>
+  </div>
+</div>
+
+<!-- Live training: pick position (prone/standing) for the bout just finished -->
+<div class="ov top" id="liveBoutPosOverlay"></div>
+<div class="panel-center" id="liveBoutPosSheet">
+  <div class="sheet-head">
+    <h2 style="font-size:16px;" data-i18n="lbl_position">Position</h2>
+    <button class="close-btn" id="liveBoutPosClose">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <div class="pos-row" id="liveBoutPosRow">
+    <button type="button" class="pos-btn" data-val="lezka">
+      <span class="pos-icon" id="liveBoutPosIconLezka"></span>
+      <span data-i18n="pos_prone">Prone</span>
+    </button>
+    <button type="button" class="pos-btn" data-val="stojka">
+      <span class="pos-icon" id="liveBoutPosIconStojka"></span>
+      <span data-i18n="pos_standing">Standing</span>
+    </button>
+  </div>
+  <button type="button" class="save-btn field-gap" id="liveBoutPosSaveBtn" data-i18n="live_bout_quick_save">Save</button>
+</div>
+
+<!-- Live training: edit an already-recorded series -->
+<div class="ov top" id="liveBoutEditOverlay"></div>
+<div class="panel-center" id="liveBoutEditSheet">
+  <div class="sheet-head">
+    <h2 style="font-size:16px;" data-i18n="live_bout_edit_title">Edit series</h2>
+    <button class="close-btn" id="liveBoutEditClose">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+
+  <label class="small" data-i18n="lbl_position">Position</label>
+  <div class="pos-row" id="liveBoutEditPosRow">
+    <button type="button" class="pos-btn" data-val="lezka">
+      <span class="pos-icon" id="liveBoutEditPosIconLezka"></span>
+      <span data-i18n="pos_prone">Prone</span>
+    </button>
+    <button type="button" class="pos-btn" data-val="stojka">
+      <span class="pos-icon" id="liveBoutEditPosIconStojka"></span>
+      <span data-i18n="pos_standing">Standing</span>
+    </button>
+  </div>
+
+  <label class="small field-gap" data-i18n="lbl_success">Misses (0 = 5/5)</label>
+  <div class="row6" id="liveBoutEditScoreRow"></div>
+
+  <div class="clock-wrap field-gap"><svg id="liveBoutEditClockSvg" width="180" height="180" viewBox="0 0 180 180"></svg></div>
+  <div class="clock-count"><span data-i18n="clock_count_label">Marked</span>: <b id="liveBoutEditClockCount">0</b>/<span id="liveBoutEditClockMax">5</span></div>
+  <div class="clock-btns">
+    <button type="button" id="liveBoutEditClockReset" data-i18n="btn_reset">Reset</button>
+  </div>
+
+  <div class="live-field-row field-gap">
+    <div class="login-field">
+      <label data-i18n="live_bout_edit_time">Total time (s)</label>
+      <input type="number" step="0.1" min="0" id="liveBoutEditTime">
+    </div>
+    <div class="login-field">
+      <label data-i18n="live_bout_edit_first_time">First shot (s)</label>
+      <input type="number" step="0.1" min="0" id="liveBoutEditFirstTime">
+    </div>
+  </div>
+
+  <button type="button" class="save-btn field-gap" id="liveBoutEditSaveBtn" data-i18n="btn_done">Done</button>
 </div>
 
 <!-- Calendar picker -->
@@ -1061,6 +1209,10 @@
     <legend data-i18n="group_members_title">Members</legend>
     <div class="group-member-list" id="groupMembersWrap"></div>
   </div>
+  <div class="settings-section" id="liveTrainingsSection" style="display:none;">
+    <legend data-i18n="live_trainings_list_title">Live trainings</legend>
+    <div id="liveTrainingsListWrap" class="live-trainings-list"></div>
+  </div>
   <button type="button" class="delete-entry-btn" id="groupLeaveBtn" data-i18n="group_leave" style="display:none;">Leave group</button>
   <button type="button" class="delete-entry-btn" id="groupDeleteBtn" data-i18n="group_delete" style="display:none;">Delete group</button>
   <div class="settings-section" id="groupDeleteConfirmBox" style="display:none;">
@@ -1117,8 +1269,8 @@ const RACE_TYPE_OPTS = ['sprint','pursuit','individual','mass_start','relay','mi
 const INTENSITIES = ['rest','1','2','3','4','5'];
 
 const T = {
-en:{tab_all:'All',tab_races:'Races',tab_trainings:'Trainings',stat_overall:'Overall success',stat_avgtime:'Avg. shooting time',stat_by_intensity:'Success by intensity',stat_time_by_intensity:'Avg. time by intensity',stat_missmap:'Target',stat_missmap_empty:'No shot data yet',btn_new_entry:'New entry',sheet_new_training:'New training',sheet_new_race:'New race',sheet_edit_training:'Edit training',sheet_edit_race:'Edit race',lbl_type:'Type',type_training:'Training',type_race:'Race',lbl_date:'Date',lbl_place:'Place',ph_place:'Type a place',lbl_race_type:'Race type',ph_race_type_other:'Type the race type',lbl_description:'Description',ph_description:'Short note, e.g. intervals...',lbl_items:'Shootings',builder_title:'New shooting',lbl_position:'Position',pos_prone:'Prone',pos_standing:'Standing',lbl_intensity:'Intensity',int_rest:'Rest',int_race:'Race',lbl_wind:'Wind',lbl_time:'Shooting time',lbl_first_shot_time:'First shot time',ph_seconds:'seconds',lbl_success:'Misses (0 = 5/5)',lbl_miss_directions:'Shot positions',miss_directions_hint:'Tap to mark all 5 shots on the target',btn_add_item:'+ Add shooting',btn_save_entry:'Save entry',btn_save_changes:'Save changes',btn_cancel:'Cancel',btn_delete:'Delete entry',hint_addhome:'Tip: open this page on your phone and use "Add to Home Screen" in your browser menu — it\'ll run full-screen like a regular app.',empty_title:'No entries yet.<br>Add your first training or race.',meta_items:'shootings',meta_success:'success',no_data_dash:'—',clock_title:'Shot positions',clock_count_label:'Marked',btn_undo:'Undo',btn_reset:'Reset',btn_done:'Done',settings_title:'Settings',settings_training_places:'Favorite training places',settings_race_places:'Favorite race places',ph_new_place:'Place name',btn_add:'Add',lang_title:'Language',alert_required_prefix:'Please fill in required fields:',btn_trend:'Success trend',btn_overview:'Overview',gran_month:'Months',gran_week:'Weeks',lbl_show_series:'Show',trend_overall:'Overall',trend_empty:'Not enough data for a chart yet',alert_title:'Missing information',account_remember:'Remember me on this device',account_forgot:'Forgot password?',account_forgot_intro:"Enter the email you registered with — we'll send you a link to set a new password.",account_forgot_send:'Send reset link',account_back_to_login:'Back to log in',account_forgot_sent:'Check your inbox for the reset link.',sync_error:"Couldn't sync with the server — check your connection.",profile_intro:'Just a few details to finish setting up your account.',profile_first_name:'First name',profile_last_name:'Last name',profile_dob:'Date of birth',profile_country:'Country',profile_club:'Club',profile_save:'Save and continue',profile_fill_required:'Please fill in all required fields.',account_club_saved:'Saved',account_intro:'Sign in to sync your shootings across devices and share them with a coach.',account_email:'Email',account_password:'Password',account_login:'Log in',account_signup:'Sign up',account_or:'or',account_google:'Continue with Google',account_switch_to_signup:'Don\'t have an account? Sign up',account_switch_to_login:'Already have an account? Log in',account_guest:'Continue without an account',account_title:'Account',account_your_code:'Your athlete code',account_copy:'Copy',account_code_hint:'Share this code with your coach so they can follow your shootings.',account_athletes:'Athletes you follow',account_athlete_code_ph:'Paste athlete code',account_no_athletes:'You\'re not following anyone yet.',account_view:'View',account_viewing:'Viewing',account_viewing_prefix:'Viewing:',account_back_to_mine:'Back to my data',account_cant_add_self:'You can\'t add yourself.',account_add_failed:'Couldn\'t add this athlete. Check the code.',account_logout:'Log out',account_fill_both:'Enter both an email and a password.',account_err_credentials:'Incorrect email or password.',account_err_in_use:'That email is already registered.',account_err_weak:'Password should be at least 6 characters.',account_err_generic:'Something went wrong. Please try again.',account_locked_out:'Too many failed attempts. Try again in {n} min.',account_groups_owned:'Groups you manage',account_groups_member:"Groups you're in",group_name_ph:'Group name',btn_create_group:'Create',group_photo_btn:'Photo',group_join_ph:'Enter group code',btn_join_group:'Join',group_no_owned:"You don't manage any groups yet.",group_no_member:"You're not in any group yet.",group_members_label:'members',group_members_title:'Members',group_no_members_yet:'No members yet.',group_join_error_invalid:'Invalid code.',group_join_error_already:"You're already in this group.",group_join_error_own:"You can't join your own group.",group_add_failed:"Couldn't join the group. Check the code.",group_leave:'Leave group',group_delete:'Delete group',group_leave_confirm_title:'Leave group?',group_leave_confirm_msg:"You'll lose access to this group until you rejoin with the code.",group_delete_confirm_title:'Delete group?',group_delete_confirm_msg:"This removes the group and revokes access for all members. This can't be undone.",group_remove_member_confirm_title:'Remove member?',group_remove_member_confirm_msg:"They'll lose access until they rejoin with the group code.",account_change_password:'Change password',account_current_password:'Current password',account_new_password:'New password',btn_change_password:'Change password',password_changed_note:'Password changed.',account_delete_account:'Delete account',mydata_title:'My data',mydata_intro:'Save a backup of all your trainings and races as a file on your device, or restore your data from a previous backup file.',mydata_export:'Export my data',mydata_import:'Import from a backup file',mydata_import_success:'Import complete: {a} added, {u} updated.',mydata_import_error:'This file doesn\'t look like a valid ShootStats backup.',account_delete_password_label:'Enter your password to confirm',btn_delete_account:'Delete account',delete_account_confirm_title:'Delete account?',delete_account_confirm_msg:"This permanently deletes your account and all your data. This can't be undone.",confirm_cancel:'Cancel',confirm_ok:'Confirm',err_wrong_password:'Incorrect password.',account_my_groups:'My groups',profile_role:'I am a',role_athlete:'Athlete',role_coach:'Coach',role_hint:"Coaches don't log shootings themselves — instead they see their group and athletes on the home screen.",coach_no_group:"You don't manage a group yet. Create one to start following your athletes.",coach_no_athletes_yet:'No athletes have joined yet. Share your group code with them.',target_settings_title:'Target display',target_colored_label:'Colored hit/miss circles',target_heatmap_label:'Heat map instead of dots',target_fade_label:'Fade older shots',target_max_shots_label:'Max shots shown',target_all_shots:'All',target_period_label:'Time period',target_period_all:'All time',target_period_week:'Last week',target_period_month:'Last month',target_period_custom:'Custom range',target_period_from:'From',target_period_to:'To'},
-cs:{tab_all:'Vše',tab_races:'Závody',tab_trainings:'Tréninky',stat_overall:'Celková úspěšnost',stat_avgtime:'Průměr času položky',stat_by_intensity:'Úspěšnost dle intenzity',stat_time_by_intensity:'Průměr času dle intenzity',stat_missmap:'Terč',stat_missmap_empty:'Zatím žádná data o zásazích',btn_new_entry:'Nový záznam',sheet_new_training:'Nový trénink',sheet_new_race:'Nový závod',sheet_edit_training:'Upravit trénink',sheet_edit_race:'Upravit závod',lbl_type:'Typ',type_training:'Trénink',type_race:'Závod',lbl_date:'Datum',lbl_place:'Místo',ph_place:'Napiš místo',lbl_race_type:'Typ závodu',ph_race_type_other:'Napiš typ závodu',lbl_description:'Popisek',ph_description:'Krátká poznámka, např. intervaly...',lbl_items:'Položky',builder_title:'Nová položka',lbl_position:'Poloha',pos_prone:'Ležka',pos_standing:'Stojka',lbl_intensity:'Intenzita',int_rest:'Klid',int_race:'Závod',lbl_wind:'Vítr',lbl_time:'Čas položky',lbl_first_shot_time:'Čas první rány',ph_seconds:'sekundy',lbl_success:'Chyby (0 = 5/5)',lbl_miss_directions:'Pozice ran',miss_directions_hint:'Klepnutím označ všech 5 ran na terči',btn_add_item:'+ Přidat položku',btn_save_entry:'Uložit záznam',btn_save_changes:'Uložit změny',btn_cancel:'Zrušit',btn_delete:'Smazat záznam',hint_addhome:'Tip: otevři tuto stránku v mobilu a přes nabídku prohlížeče zvol „Přidat na plochu" — appka pak poběží na celou obrazovku jako běžná aplikace.',empty_title:'Zatím žádné záznamy.<br>Přidej svůj první trénink nebo závod.',meta_items:'položek',meta_success:'úspěšnost',no_data_dash:'—',clock_title:'Pozice ran',clock_count_label:'Označeno',btn_undo:'Zpět',btn_reset:'Vymazat',btn_done:'Hotovo',settings_title:'Nastavení',settings_training_places:'Oblíbená místa tréninků',settings_race_places:'Oblíbená místa závodů',ph_new_place:'Název místa',btn_add:'Přidat',lang_title:'Jazyk',alert_required_prefix:'Vyplň prosím povinná pole:',btn_trend:'Trend úspěšnosti',btn_overview:'Přehled',gran_month:'Měsíce',gran_week:'Týdny',lbl_show_series:'Zobrazit',trend_overall:'Celková',trend_empty:'Zatím nedostatek dat pro graf',alert_title:'Chybí údaje',account_remember:'Zapamatovat si mě na tomto zařízení',account_forgot:'Zapomenuté heslo?',account_forgot_intro:'Zadej e-mail, kterým jsi zaregistrovaný — pošleme ti odkaz pro nastavení nového hesla.',account_forgot_send:'Odeslat odkaz',account_back_to_login:'Zpět na přihlášení',account_forgot_sent:'Zkontroluj si e-mail, poslali jsme ti odkaz.',sync_error:'Nepodařilo se synchronizovat se serverem — zkontroluj připojení.',profile_intro:'Ještě pár údajů pro dokončení účtu.',profile_first_name:'Jméno',profile_last_name:'Příjmení',profile_dob:'Datum narození',profile_country:'Stát',profile_club:'Klub',profile_save:'Uložit a pokračovat',profile_fill_required:'Vyplň prosím všechna povinná pole.',account_club_saved:'Uloženo',account_intro:'Přihlas se, ať se ti střelby synchronizují mezi zařízeními a můžeš je sdílet s trenérem.',account_email:'E-mail',account_password:'Heslo',account_login:'Přihlásit se',account_signup:'Registrovat se',account_or:'nebo',account_google:'Pokračovat přes Google',account_switch_to_signup:'Nemáš účet? Zaregistruj se',account_switch_to_login:'Už máš účet? Přihlas se',account_guest:'Pokračovat bez účtu',account_title:'Účet',account_your_code:'Tvůj sportovní kód',account_copy:'Kopírovat',account_code_hint:'Sdílej tento kód se svým trenérem, ať může sledovat tvoje střelby.',account_athletes:'Sportovci, které sleduješ',account_athlete_code_ph:'Vlož kód sportovce',account_no_athletes:'Zatím nikoho nesleduješ.',account_view:'Zobrazit',account_viewing:'Zobrazeno',account_viewing_prefix:'Zobrazuješ:',account_back_to_mine:'Zpět na moje data',account_cant_add_self:'Sám sebe přidat nemůžeš.',account_add_failed:'Sportovce se nepodařilo přidat. Zkontroluj kód.',account_logout:'Odhlásit se',account_fill_both:'Vyplň e-mail i heslo.',account_err_credentials:'Nesprávný e-mail nebo heslo.',account_err_in_use:'Tento e-mail je už zaregistrovaný.',account_err_weak:'Heslo by mělo mít alespoň 6 znaků.',account_err_generic:'Něco se nepovedlo. Zkus to prosím znovu.',account_locked_out:'Příliš mnoho neúspěšných pokusů. Zkus to znovu za {n} min.',account_groups_owned:'Skupiny, které spravuješ',account_groups_member:'Skupiny, ve kterých jsi',group_name_ph:'Název skupiny',btn_create_group:'Vytvořit',group_photo_btn:'Fotka',group_join_ph:'Vlož kód skupiny',btn_join_group:'Přidat se',group_no_owned:'Zatím nespravuješ žádnou skupinu.',group_no_member:'Zatím nejsi v žádné skupině.',group_members_label:'členů',group_members_title:'Členové',group_no_members_yet:'Zatím žádní členové.',group_join_error_invalid:'Neplatný kód.',group_join_error_already:'V této skupině už jsi.',group_join_error_own:'Do vlastní skupiny se přidat nemůžeš.',group_add_failed:'Nepodařilo se přidat do skupiny. Zkontroluj kód.',group_leave:'Opustit skupinu',group_delete:'Smazat skupinu',group_leave_confirm_title:'Opustit skupinu?',group_leave_confirm_msg:'Ztratíš přístup do této skupiny, dokud se znovu nepřidáš pomocí kódu.',group_delete_confirm_title:'Smazat skupinu?',group_delete_confirm_msg:'Skupina bude smazána a všem členům bude zrušen přístup. Tuto akci nelze vrátit zpět.',group_remove_member_confirm_title:'Odebrat člena?',group_remove_member_confirm_msg:'Ztratí přístup, dokud se znovu nepřidá pomocí kódu skupiny.',account_change_password:'Změna hesla',account_current_password:'Současné heslo',account_new_password:'Nové heslo',btn_change_password:'Změnit heslo',password_changed_note:'Heslo změněno.',account_delete_account:'Smazat účet',mydata_title:'Moje data',mydata_intro:'Ulož si zálohu všech tréninků a závodů jako soubor do zařízení, nebo obnov svá data z předchozí zálohy.',mydata_export:'Exportovat data',mydata_import:'Importovat ze zálohy',mydata_import_success:'Import dokončen: {a} přidáno, {u} aktualizováno.',mydata_import_error:'Tento soubor nevypadá jako platná záloha ze ShootStats.',account_delete_password_label:'Pro potvrzení zadej své heslo',btn_delete_account:'Smazat účet',delete_account_confirm_title:'Smazat účet?',delete_account_confirm_msg:'Účet a všechna tvá data budou natrvalo smazána. Tuto akci nelze vrátit zpět.',confirm_cancel:'Zrušit',confirm_ok:'Potvrdit',err_wrong_password:'Nesprávné heslo.',account_my_groups:'Moje skupiny',profile_role:'Jsem',role_athlete:'Sportovec',role_coach:'Trenér',role_hint:'Trenéři si nezapisují střelby — místo toho na úvodní obrazovce uvidí svou skupinu a sportovce.',coach_no_group:'Zatím nespravuješ žádnou skupinu. Vytvoř si ji a začni sledovat své sportovce.',coach_no_athletes_yet:'Zatím se nepřipojil žádný sportovec. Sdílej s nimi kód skupiny.',target_settings_title:'Zobrazení terče',target_colored_label:'Barevné kroužky zásah/mimo',target_heatmap_label:'Heat mapa místo teček',target_fade_label:'Vyblednutí starších ran',target_max_shots_label:'Max. počet zobrazených ran',target_all_shots:'Vše',target_period_label:'Časové období',target_period_all:'Celá historie',target_period_week:'Poslední týden',target_period_month:'Poslední měsíc',target_period_custom:'Vlastní rozsah',target_period_from:'Od',target_period_to:'Do'},
+en:{tab_all:'All',tab_races:'Races',tab_trainings:'Trainings',stat_overall:'Overall success',stat_avgtime:'Avg. shooting time',stat_by_intensity:'Success by intensity',stat_time_by_intensity:'Avg. time by intensity',stat_missmap:'Target',stat_missmap_empty:'No shot data yet',btn_new_entry:'New entry',sheet_new_training:'New training',sheet_new_race:'New race',sheet_edit_training:'Edit training',sheet_edit_race:'Edit race',lbl_type:'Type',type_training:'Training',type_race:'Race',lbl_date:'Date',lbl_place:'Place',ph_place:'Type a place',lbl_race_type:'Race type',ph_race_type_other:'Type the race type',lbl_description:'Description',ph_description:'Short note, e.g. intervals...',lbl_items:'Shootings',builder_title:'New shooting',lbl_position:'Position',pos_prone:'Prone',pos_standing:'Standing',lbl_intensity:'Intensity',int_rest:'Rest',int_race:'Race',lbl_wind:'Wind',lbl_time:'Shooting time',lbl_first_shot_time:'First shot time',ph_seconds:'seconds',lbl_success:'Misses (0 = 5/5)',lbl_miss_directions:'Shot positions',miss_directions_hint:'Tap to mark all 5 shots on the target',btn_add_item:'+ Add shooting',btn_save_entry:'Save entry',btn_save_changes:'Save changes',btn_cancel:'Cancel',btn_delete:'Delete entry',hint_addhome:'Tip: open this page on your phone and use "Add to Home Screen" in your browser menu — it\'ll run full-screen like a regular app.',empty_title:'No entries yet.<br>Add your first training or race.',meta_items:'shootings',meta_success:'success',no_data_dash:'—',clock_title:'Shot positions',clock_count_label:'Marked',btn_undo:'Undo',btn_reset:'Reset',btn_done:'Done',settings_title:'Settings',settings_training_places:'Favorite training places',settings_race_places:'Favorite race places',ph_new_place:'Place name',btn_add:'Add',lang_title:'Language',alert_required_prefix:'Please fill in required fields:',btn_trend:'Success trend',btn_overview:'Overview',gran_month:'Months',gran_week:'Weeks',lbl_show_series:'Show',trend_overall:'Overall',trend_empty:'Not enough data for a chart yet',alert_title:'Missing information',account_remember:'Remember me on this device',account_forgot:'Forgot password?',account_forgot_intro:"Enter the email you registered with — we'll send you a link to set a new password.",account_forgot_send:'Send reset link',account_back_to_login:'Back to log in',account_forgot_sent:'Check your inbox for the reset link.',sync_error:"Couldn't sync with the server — check your connection.",profile_intro:'Just a few details to finish setting up your account.',profile_first_name:'First name',profile_last_name:'Last name',profile_dob:'Date of birth',profile_country:'Country',profile_club:'Club',profile_save:'Save and continue',profile_fill_required:'Please fill in all required fields.',account_club_saved:'Saved',account_intro:'Sign in to sync your shootings across devices and share them with a coach.',account_email:'Email',account_password:'Password',account_login:'Log in',account_signup:'Sign up',account_or:'or',account_google:'Continue with Google',account_switch_to_signup:'Don\'t have an account? Sign up',account_switch_to_login:'Already have an account? Log in',account_guest:'Continue without an account',account_title:'Account',account_your_code:'Your athlete code',account_copy:'Copy',account_code_hint:'Share this code with your coach so they can follow your shootings.',account_athletes:'Athletes you follow',account_athlete_code_ph:'Paste athlete code',account_no_athletes:'You\'re not following anyone yet.',account_view:'View',account_viewing:'Viewing',account_viewing_prefix:'Viewing:',account_back_to_mine:'Back to my data',account_cant_add_self:'You can\'t add yourself.',account_add_failed:'Couldn\'t add this athlete. Check the code.',account_logout:'Log out',account_fill_both:'Enter both an email and a password.',account_err_credentials:'Incorrect email or password.',account_err_in_use:'That email is already registered.',account_err_weak:'Password should be at least 6 characters.',account_err_generic:'Something went wrong. Please try again.',account_locked_out:'Too many failed attempts. Try again in {n} min.',account_groups_owned:'Groups you manage',account_groups_member:"Groups you're in",group_name_ph:'Group name',btn_create_group:'Create',group_photo_btn:'Photo',group_join_ph:'Enter group code',btn_join_group:'Join',group_no_owned:"You don't manage any groups yet.",group_no_member:"You're not in any group yet.",group_members_label:'members',group_members_title:'Members',group_no_members_yet:'No members yet.',group_join_error_invalid:'Invalid code.',group_join_error_already:"You're already in this group.",group_join_error_own:"You can't join your own group.",group_add_failed:"Couldn't join the group. Check the code.",group_leave:'Leave group',group_delete:'Delete group',group_leave_confirm_title:'Leave group?',group_leave_confirm_msg:"You'll lose access to this group until you rejoin with the code.",group_delete_confirm_title:'Delete group?',group_delete_confirm_msg:"This removes the group and revokes access for all members. This can't be undone.",group_remove_member_confirm_title:'Remove member?',group_remove_member_confirm_msg:"They'll lose access until they rejoin with the group code.",account_change_password:'Change password',account_current_password:'Current password',account_new_password:'New password',btn_change_password:'Change password',password_changed_note:'Password changed.',account_delete_account:'Delete account',mydata_title:'My data',mydata_intro:'Save a backup of all your trainings and races as a file on your device, or restore your data from a previous backup file.',mydata_export:'Export my data',mydata_import:'Import from a backup file',mydata_import_success:'Import complete: {a} added, {u} updated.',mydata_import_error:'This file doesn\'t look like a valid ShootStats backup.',account_delete_password_label:'Enter your password to confirm',btn_delete_account:'Delete account',delete_account_confirm_title:'Delete account?',delete_account_confirm_msg:"This permanently deletes your account and all your data. This can't be undone.",confirm_cancel:'Cancel',confirm_ok:'Confirm',err_wrong_password:'Incorrect password.',account_my_groups:'My groups',profile_role:'I am a',role_athlete:'Athlete',role_coach:'Coach',role_hint:"Coaches don't log shootings themselves — instead they see their group and athletes on the home screen.",coach_no_group:"You don't manage a group yet. Create one to start following your athletes.",coach_no_athletes_yet:'No athletes have joined yet. Share your group code with them.',target_settings_title:'Target display',target_colored_label:'Colored hit/miss circles',target_heatmap_label:'Heat map instead of dots',target_fade_label:'Fade older shots',target_max_shots_label:'Max shots shown',target_all_shots:'All',target_period_label:'Time period',target_period_all:'All time',target_period_week:'Last week',target_period_month:'Last month',target_period_custom:'Custom range',target_period_from:'From',target_period_to:'To',live_training_start:'Live training',live_training_title:'Live training',live_training_name_label:'Training name',live_training_name_placeholder:'e.g. Friday evening',live_shot_start:'Start shooting',live_shot_first:'First shot',live_shot_last:'Last shot',live_bouts_label:'series',live_training_save:'Save training',live_training_need_bout:'At least one recorded series',live_training_close_confirm_title:'Discard this training?',live_training_close_confirm_msg:'Recorded series that are not saved will be lost.',live_trainings_list_title:'Live trainings',live_trainings_empty:'No live trainings recorded yet.',live_training_choose_position_intensity:'Choose position and intensity to start recording',live_training_discard:'Discard training',live_bout_edit_title:'Edit series',live_bout_edit_time:'Total time (s)',live_bout_edit_first_time:'First shot (s)',live_training_delete:'Delete training',live_training_delete_confirm_title:'Delete this training?',live_training_delete_confirm_msg:'This permanently removes it, including all recorded series.',live_training_save_confirm_title:'Save this training?',live_training_save_confirm_msg:'The recorded series will be saved to your account.',live_bout_delete_confirm_title:'Delete this series?',live_bout_delete_confirm_msg:'This series will be permanently removed.',live_bout_quick_save:'Save'},
+cs:{tab_all:'Vše',tab_races:'Závody',tab_trainings:'Tréninky',stat_overall:'Celková úspěšnost',stat_avgtime:'Průměr času položky',stat_by_intensity:'Úspěšnost dle intenzity',stat_time_by_intensity:'Průměr času dle intenzity',stat_missmap:'Terč',stat_missmap_empty:'Zatím žádná data o zásazích',btn_new_entry:'Nový záznam',sheet_new_training:'Nový trénink',sheet_new_race:'Nový závod',sheet_edit_training:'Upravit trénink',sheet_edit_race:'Upravit závod',lbl_type:'Typ',type_training:'Trénink',type_race:'Závod',lbl_date:'Datum',lbl_place:'Místo',ph_place:'Napiš místo',lbl_race_type:'Typ závodu',ph_race_type_other:'Napiš typ závodu',lbl_description:'Popisek',ph_description:'Krátká poznámka, např. intervaly...',lbl_items:'Položky',builder_title:'Nová položka',lbl_position:'Poloha',pos_prone:'Ležka',pos_standing:'Stojka',lbl_intensity:'Intenzita',int_rest:'Klid',int_race:'Závod',lbl_wind:'Vítr',lbl_time:'Čas položky',lbl_first_shot_time:'Čas první rány',ph_seconds:'sekundy',lbl_success:'Chyby (0 = 5/5)',lbl_miss_directions:'Pozice ran',miss_directions_hint:'Klepnutím označ všech 5 ran na terči',btn_add_item:'+ Přidat položku',btn_save_entry:'Uložit záznam',btn_save_changes:'Uložit změny',btn_cancel:'Zrušit',btn_delete:'Smazat záznam',hint_addhome:'Tip: otevři tuto stránku v mobilu a přes nabídku prohlížeče zvol „Přidat na plochu" — appka pak poběží na celou obrazovku jako běžná aplikace.',empty_title:'Zatím žádné záznamy.<br>Přidej svůj první trénink nebo závod.',meta_items:'položek',meta_success:'úspěšnost',no_data_dash:'—',clock_title:'Pozice ran',clock_count_label:'Označeno',btn_undo:'Zpět',btn_reset:'Vymazat',btn_done:'Hotovo',settings_title:'Nastavení',settings_training_places:'Oblíbená místa tréninků',settings_race_places:'Oblíbená místa závodů',ph_new_place:'Název místa',btn_add:'Přidat',lang_title:'Jazyk',alert_required_prefix:'Vyplň prosím povinná pole:',btn_trend:'Trend úspěšnosti',btn_overview:'Přehled',gran_month:'Měsíce',gran_week:'Týdny',lbl_show_series:'Zobrazit',trend_overall:'Celková',trend_empty:'Zatím nedostatek dat pro graf',alert_title:'Chybí údaje',account_remember:'Zapamatovat si mě na tomto zařízení',account_forgot:'Zapomenuté heslo?',account_forgot_intro:'Zadej e-mail, kterým jsi zaregistrovaný — pošleme ti odkaz pro nastavení nového hesla.',account_forgot_send:'Odeslat odkaz',account_back_to_login:'Zpět na přihlášení',account_forgot_sent:'Zkontroluj si e-mail, poslali jsme ti odkaz.',sync_error:'Nepodařilo se synchronizovat se serverem — zkontroluj připojení.',profile_intro:'Ještě pár údajů pro dokončení účtu.',profile_first_name:'Jméno',profile_last_name:'Příjmení',profile_dob:'Datum narození',profile_country:'Stát',profile_club:'Klub',profile_save:'Uložit a pokračovat',profile_fill_required:'Vyplň prosím všechna povinná pole.',account_club_saved:'Uloženo',account_intro:'Přihlas se, ať se ti střelby synchronizují mezi zařízeními a můžeš je sdílet s trenérem.',account_email:'E-mail',account_password:'Heslo',account_login:'Přihlásit se',account_signup:'Registrovat se',account_or:'nebo',account_google:'Pokračovat přes Google',account_switch_to_signup:'Nemáš účet? Zaregistruj se',account_switch_to_login:'Už máš účet? Přihlas se',account_guest:'Pokračovat bez účtu',account_title:'Účet',account_your_code:'Tvůj sportovní kód',account_copy:'Kopírovat',account_code_hint:'Sdílej tento kód se svým trenérem, ať může sledovat tvoje střelby.',account_athletes:'Sportovci, které sleduješ',account_athlete_code_ph:'Vlož kód sportovce',account_no_athletes:'Zatím nikoho nesleduješ.',account_view:'Zobrazit',account_viewing:'Zobrazeno',account_viewing_prefix:'Zobrazuješ:',account_back_to_mine:'Zpět na moje data',account_cant_add_self:'Sám sebe přidat nemůžeš.',account_add_failed:'Sportovce se nepodařilo přidat. Zkontroluj kód.',account_logout:'Odhlásit se',account_fill_both:'Vyplň e-mail i heslo.',account_err_credentials:'Nesprávný e-mail nebo heslo.',account_err_in_use:'Tento e-mail je už zaregistrovaný.',account_err_weak:'Heslo by mělo mít alespoň 6 znaků.',account_err_generic:'Něco se nepovedlo. Zkus to prosím znovu.',account_locked_out:'Příliš mnoho neúspěšných pokusů. Zkus to znovu za {n} min.',account_groups_owned:'Skupiny, které spravuješ',account_groups_member:'Skupiny, ve kterých jsi',group_name_ph:'Název skupiny',btn_create_group:'Vytvořit',group_photo_btn:'Fotka',group_join_ph:'Vlož kód skupiny',btn_join_group:'Přidat se',group_no_owned:'Zatím nespravuješ žádnou skupinu.',group_no_member:'Zatím nejsi v žádné skupině.',group_members_label:'členů',group_members_title:'Členové',group_no_members_yet:'Zatím žádní členové.',group_join_error_invalid:'Neplatný kód.',group_join_error_already:'V této skupině už jsi.',group_join_error_own:'Do vlastní skupiny se přidat nemůžeš.',group_add_failed:'Nepodařilo se přidat do skupiny. Zkontroluj kód.',group_leave:'Opustit skupinu',group_delete:'Smazat skupinu',group_leave_confirm_title:'Opustit skupinu?',group_leave_confirm_msg:'Ztratíš přístup do této skupiny, dokud se znovu nepřidáš pomocí kódu.',group_delete_confirm_title:'Smazat skupinu?',group_delete_confirm_msg:'Skupina bude smazána a všem členům bude zrušen přístup. Tuto akci nelze vrátit zpět.',group_remove_member_confirm_title:'Odebrat člena?',group_remove_member_confirm_msg:'Ztratí přístup, dokud se znovu nepřidá pomocí kódu skupiny.',account_change_password:'Změna hesla',account_current_password:'Současné heslo',account_new_password:'Nové heslo',btn_change_password:'Změnit heslo',password_changed_note:'Heslo změněno.',account_delete_account:'Smazat účet',mydata_title:'Moje data',mydata_intro:'Ulož si zálohu všech tréninků a závodů jako soubor do zařízení, nebo obnov svá data z předchozí zálohy.',mydata_export:'Exportovat data',mydata_import:'Importovat ze zálohy',mydata_import_success:'Import dokončen: {a} přidáno, {u} aktualizováno.',mydata_import_error:'Tento soubor nevypadá jako platná záloha ze ShootStats.',account_delete_password_label:'Pro potvrzení zadej své heslo',btn_delete_account:'Smazat účet',delete_account_confirm_title:'Smazat účet?',delete_account_confirm_msg:'Účet a všechna tvá data budou natrvalo smazána. Tuto akci nelze vrátit zpět.',confirm_cancel:'Zrušit',confirm_ok:'Potvrdit',err_wrong_password:'Nesprávné heslo.',account_my_groups:'Moje skupiny',profile_role:'Jsem',role_athlete:'Sportovec',role_coach:'Trenér',role_hint:'Trenéři si nezapisují střelby — místo toho na úvodní obrazovce uvidí svou skupinu a sportovce.',coach_no_group:'Zatím nespravuješ žádnou skupinu. Vytvoř si ji a začni sledovat své sportovce.',coach_no_athletes_yet:'Zatím se nepřipojil žádný sportovec. Sdílej s nimi kód skupiny.',target_settings_title:'Zobrazení terče',target_colored_label:'Barevné kroužky zásah/mimo',target_heatmap_label:'Heat mapa místo teček',target_fade_label:'Vyblednutí starších ran',target_max_shots_label:'Max. počet zobrazených ran',target_all_shots:'Vše',target_period_label:'Časové období',target_period_all:'Celá historie',target_period_week:'Poslední týden',target_period_month:'Poslední měsíc',target_period_custom:'Vlastní rozsah',target_period_from:'Od',target_period_to:'Do',live_training_start:'Živý trénink',live_training_title:'Živý trénink',live_training_name_label:'Název tréninku',live_training_name_placeholder:'Např. pátek večer',live_shot_start:'Začátek střelby',live_shot_first:'První rána',live_shot_last:'Poslední rána',live_bouts_label:'sérií',live_training_save:'Uložit trénink',live_training_need_bout:'Alespoň jedna zaznamenaná série',live_training_close_confirm_title:'Zahodit tenhle trénink?',live_training_close_confirm_msg:'Zaznamenané série, které nejsou uložené, se ztratí.',live_trainings_list_title:'Živé tréninky',live_trainings_empty:'Zatím žádné živé tréninky.',live_training_choose_position_intensity:'Nejdřív zvol polohu a intenzitu',live_training_discard:'Zahodit trénink',live_bout_edit_title:'Upravit sérii',live_bout_edit_time:'Celkový čas (s)',live_bout_edit_first_time:'Čas první rány (s)',live_training_delete:'Smazat trénink',live_training_delete_confirm_title:'Smazat tenhle trénink?',live_training_delete_confirm_msg:'Trénink se nenávratně smaže, včetně všech zaznamenaných sérií.',live_training_save_confirm_title:'Uložit tenhle trénink?',live_training_save_confirm_msg:'Zaznamenané série se uloží do tvého účtu.',live_bout_delete_confirm_title:'Smazat tuhle sérii?',live_bout_delete_confirm_msg:'Série se nenávratně smaže.',live_bout_quick_save:'Uložit'},
 de:{tab_all:'Alle',tab_races:'Wettkämpfe',tab_trainings:'Trainings',stat_overall:'Gesamttrefferquote',stat_avgtime:'Ø Zeit pro Anschlag',stat_by_intensity:'Trefferquote nach Intensität',stat_time_by_intensity:'Ø Zeit nach Intensität',stat_missmap:'Scheibe',stat_missmap_empty:'Noch keine Schussdaten',btn_new_entry:'Neuer Eintrag',sheet_new_training:'Neues Training',sheet_new_race:'Neuer Wettkampf',sheet_edit_training:'Training bearbeiten',sheet_edit_race:'Wettkampf bearbeiten',lbl_type:'Typ',type_training:'Training',type_race:'Wettkampf',lbl_date:'Datum',lbl_place:'Ort',ph_place:'Ort eingeben',lbl_race_type:'Wettkampfart',ph_race_type_other:'Wettkampfart eingeben',lbl_description:'Beschreibung',ph_description:'Kurze Notiz, z. B. Intervalle...',lbl_items:'Schießeinlagen',builder_title:'Neue Einlage',lbl_position:'Anschlag',pos_prone:'Liegend',pos_standing:'Stehend',lbl_intensity:'Intensität',int_rest:'Ruhe',int_race:'Wettkampf',lbl_wind:'Wind',lbl_time:'Schießzeit',lbl_first_shot_time:'Zeit des ersten Schusses',ph_seconds:'Sekunden',lbl_success:'Fehler (0 = 5/5)',lbl_miss_directions:'Schusspositionen',miss_directions_hint:'Tippe, um alle 5 Schüsse auf der Scheibe zu markieren',btn_add_item:'+ Einlage hinzufügen',btn_save_entry:'Eintrag speichern',btn_save_changes:'Änderungen speichern',btn_cancel:'Abbrechen',btn_delete:'Eintrag löschen',hint_addhome:'Tipp: Öffne diese Seite auf dem Handy und wähle im Browsermenü „Zum Startbildschirm" — die App läuft dann im Vollbild wie eine normale App.',empty_title:'Noch keine Einträge.<br>Füge dein erstes Training oder Rennen hinzu.',meta_items:'Einlagen',meta_success:'Trefferquote',no_data_dash:'—',clock_title:'Schusspositionen',clock_count_label:'Markiert',btn_undo:'Rückgängig',btn_reset:'Zurücksetzen',btn_done:'Fertig',settings_title:'Einstellungen',settings_training_places:'Lieblings-Trainingsorte',settings_race_places:'Lieblings-Wettkampforte',ph_new_place:'Ortsname',btn_add:'Hinzufügen',lang_title:'Sprache',alert_required_prefix:'Bitte Pflichtfelder ausfüllen:',btn_trend:'Erfolgstrend',btn_overview:'Übersicht',gran_month:'Monate',gran_week:'Wochen',lbl_show_series:'Anzeigen',trend_overall:'Gesamt',trend_empty:'Noch nicht genug Daten für ein Diagramm',alert_title:'Fehlende Angaben',account_remember:'Auf diesem Gerät merken',account_forgot:'Passwort vergessen?',account_forgot_intro:'Gib die E-Mail-Adresse ein, mit der du registriert bist — wir senden dir einen Link zum Zurücksetzen.',account_forgot_send:'Link senden',account_back_to_login:'Zurück zur Anmeldung',account_forgot_sent:'Prüfe dein Postfach für den Link.',sync_error:'Synchronisierung fehlgeschlagen — Verbindung prüfen.',profile_intro:'Noch ein paar Angaben, um dein Konto einzurichten.',profile_first_name:'Vorname',profile_last_name:'Nachname',profile_dob:'Geburtsdatum',profile_country:'Land',profile_club:'Verein',profile_save:'Speichern und weiter',profile_fill_required:'Bitte alle Pflichtfelder ausfüllen.',account_club_saved:'Gespeichert',account_intro:'Melde dich an, um deine Schüsse geräteübergreifend zu synchronisieren und mit einem Trainer zu teilen.',account_email:'E-Mail',account_password:'Passwort',account_login:'Anmelden',account_signup:'Registrieren',account_or:'oder',account_google:'Weiter mit Google',account_switch_to_signup:'Noch kein Konto? Registrieren',account_switch_to_login:'Schon ein Konto? Anmelden',account_guest:'Ohne Konto fortfahren',account_title:'Konto',account_your_code:'Dein Athletencode',account_copy:'Kopieren',account_code_hint:'Teile diesen Code mit deinem Trainer, damit er deine Schüsse verfolgen kann.',account_athletes:'Athleten, denen du folgst',account_athlete_code_ph:'Athletencode einfügen',account_no_athletes:'Du folgst noch niemandem.',account_view:'Ansehen',account_viewing:'Angezeigt',account_viewing_prefix:'Angezeigt:',account_back_to_mine:'Zurück zu meinen Daten',account_cant_add_self:'Du kannst dich nicht selbst hinzufügen.',account_add_failed:'Athlet konnte nicht hinzugefügt werden. Code prüfen.',account_logout:'Abmelden',account_fill_both:'Bitte E-Mail und Passwort eingeben.',account_err_credentials:'Falsche E-Mail oder falsches Passwort.',account_err_in_use:'Diese E-Mail ist bereits registriert.',account_err_weak:'Das Passwort sollte mindestens 6 Zeichen haben.',account_err_generic:'Etwas ist schiefgelaufen. Bitte erneut versuchen.',account_locked_out:'Zu viele Fehlversuche. Versuche es in {n} Min. erneut.',account_groups_owned:'Gruppen, die du leitest',account_groups_member:'Gruppen, in denen du bist',group_name_ph:'Gruppenname',btn_create_group:'Erstellen',group_photo_btn:'Foto',group_join_ph:'Gruppencode eingeben',btn_join_group:'Beitreten',group_no_owned:'Du leitest noch keine Gruppe.',group_no_member:'Du bist noch in keiner Gruppe.',group_members_label:'Mitglieder',group_members_title:'Mitglieder',group_no_members_yet:'Noch keine Mitglieder.',group_join_error_invalid:'Ungültiger Code.',group_join_error_already:'Du bist bereits in dieser Gruppe.',group_join_error_own:'Du kannst deiner eigenen Gruppe nicht beitreten.',group_add_failed:'Beitritt fehlgeschlagen. Code prüfen.',group_leave:'Gruppe verlassen',group_delete:'Gruppe löschen',group_leave_confirm_title:'Gruppe verlassen?',group_leave_confirm_msg:'Du verlierst den Zugriff auf diese Gruppe, bis du mit dem Code erneut beitrittst.',group_delete_confirm_title:'Gruppe löschen?',group_delete_confirm_msg:'Die Gruppe wird gelöscht und der Zugriff für alle Mitglieder widerrufen. Das kann nicht rückgängig gemacht werden.',group_remove_member_confirm_title:'Mitglied entfernen?',group_remove_member_confirm_msg:'Es verliert den Zugriff, bis es mit dem Gruppencode erneut beitritt.',account_change_password:'Passwort ändern',account_current_password:'Aktuelles Passwort',account_new_password:'Neues Passwort',btn_change_password:'Passwort ändern',password_changed_note:'Passwort geändert.',account_delete_account:'Konto löschen',mydata_title:'Meine Daten',mydata_intro:'Speichere eine Sicherung all deiner Trainings und Wettkämpfe als Datei, oder stelle deine Daten aus einer früheren Sicherung wieder her.',mydata_export:'Daten exportieren',mydata_import:'Aus Sicherung importieren',mydata_import_success:'Import abgeschlossen: {a} hinzugefügt, {u} aktualisiert.',mydata_import_error:'Diese Datei sieht nicht wie eine gültige ShootStats-Sicherung aus.',account_delete_password_label:'Gib dein Passwort zur Bestätigung ein',btn_delete_account:'Konto löschen',delete_account_confirm_title:'Konto löschen?',delete_account_confirm_msg:'Dein Konto und alle deine Daten werden dauerhaft gelöscht. Das kann nicht rückgängig gemacht werden.',confirm_cancel:'Abbrechen',confirm_ok:'Bestätigen',err_wrong_password:'Falsches Passwort.'},
 fr:{tab_all:'Tout',tab_races:'Courses',tab_trainings:'Entraînements',stat_overall:'Réussite globale',stat_avgtime:'Temps moyen par série',stat_by_intensity:'Réussite par intensité',stat_time_by_intensity:'Temps moyen par intensité',stat_missmap:'Cible',stat_missmap_empty:'Pas encore de données de tir',btn_new_entry:'Nouvelle entrée',sheet_new_training:'Nouvel entraînement',sheet_new_race:'Nouvelle course',sheet_edit_training:"Modifier l'entraînement",sheet_edit_race:'Modifier la course',lbl_type:'Type',type_training:'Entraînement',type_race:'Course',lbl_date:'Date',lbl_place:'Lieu',ph_place:'Indiquer un lieu',lbl_race_type:'Type de course',ph_race_type_other:'Indiquer le type de course',lbl_description:'Description',ph_description:'Courte note, ex. fractionné...',lbl_items:'Séries de tir',builder_title:'Nouvelle série',lbl_position:'Position',pos_prone:'Couché',pos_standing:'Debout',lbl_intensity:'Intensité',int_rest:'Repos',int_race:'Course',lbl_wind:'Vent',lbl_time:'Temps de tir',lbl_first_shot_time:'Temps du premier tir',ph_seconds:'secondes',lbl_success:'Erreurs (0 = 5/5)',lbl_miss_directions:'Positions des tirs',miss_directions_hint:'Touchez pour marquer les 5 tirs sur la cible',btn_add_item:'+ Ajouter une série',btn_save_entry:"Enregistrer l'entrée",btn_save_changes:'Enregistrer les modifications',btn_cancel:'Annuler',btn_delete:"Supprimer l'entrée",hint_addhome:'Astuce : ouvre cette page sur ton téléphone et choisis « Ajouter à l\'écran d\'accueil » dans le menu du navigateur — l\'appli s\'ouvrira en plein écran comme une vraie appli.',empty_title:'Aucune entrée pour le moment.<br>Ajoute ton premier entraînement ou course.',meta_items:'séries',meta_success:'réussite',no_data_dash:'—',clock_title:'Positions des tirs',clock_count_label:'Marqués',btn_undo:'Annuler',btn_reset:'Réinitialiser',btn_done:'Terminé',settings_title:'Réglages',settings_training_places:"Lieux d'entraînement favoris",settings_race_places:'Lieux de course favoris',ph_new_place:'Nom du lieu',btn_add:'Ajouter',lang_title:'Langue',alert_required_prefix:'Merci de remplir les champs obligatoires :',btn_trend:'Tendance de réussite',btn_overview:'Aperçu',gran_month:'Mois',gran_week:'Semaines',lbl_show_series:'Afficher',trend_overall:'Global',trend_empty:'Pas encore assez de données pour un graphique',alert_title:'Informations manquantes',account_remember:'Se souvenir de moi sur cet appareil',account_forgot:'Mot de passe oublié ?',account_forgot_intro:"Indique l'e-mail utilisé à l'inscription — nous t'enverrons un lien pour définir un nouveau mot de passe.",account_forgot_send:'Envoyer le lien',account_back_to_login:'Retour à la connexion',account_forgot_sent:'Vérifie ta boîte mail pour le lien.',sync_error:'Échec de la synchronisation — vérifie ta connexion.',profile_intro:'Encore quelques informations pour finaliser ton compte.',profile_first_name:'Prénom',profile_last_name:'Nom',profile_dob:'Date de naissance',profile_country:'Pays',profile_club:'Club',profile_save:'Enregistrer et continuer',profile_fill_required:'Merci de remplir tous les champs obligatoires.',account_club_saved:'Enregistré',account_intro:'Connecte-toi pour synchroniser tes tirs entre appareils et les partager avec un entraîneur.',account_email:'E-mail',account_password:'Mot de passe',account_login:'Se connecter',account_signup:'S\'inscrire',account_or:'ou',account_google:'Continuer avec Google',account_switch_to_signup:'Pas de compte ? S\'inscrire',account_switch_to_login:'Déjà un compte ? Se connecter',account_guest:'Continuer sans compte',account_title:'Compte',account_your_code:'Ton code athlète',account_copy:'Copier',account_code_hint:'Partage ce code avec ton entraîneur pour qu\'il puisse suivre tes tirs.',account_athletes:'Athlètes que tu suis',account_athlete_code_ph:'Coller le code de l\'athlète',account_no_athletes:'Tu ne suis encore personne.',account_view:'Voir',account_viewing:'Affiché',account_viewing_prefix:'Affichage :',account_back_to_mine:'Revenir à mes données',account_cant_add_self:'Tu ne peux pas t\'ajouter toi-même.',account_add_failed:'Impossible d\'ajouter cet athlète. Vérifie le code.',account_logout:'Se déconnecter',account_fill_both:'Indique un e-mail et un mot de passe.',account_err_credentials:'E-mail ou mot de passe incorrect.',account_err_in_use:'Cet e-mail est déjà utilisé.',account_err_weak:'Le mot de passe doit contenir au moins 6 caractères.',account_err_generic:'Une erreur s\'est produite. Réessaie.',account_locked_out:'Trop de tentatives échouées. Réessaie dans {n} min.',account_groups_owned:'Groupes que tu gères',account_groups_member:'Groupes dont tu fais partie',group_name_ph:'Nom du groupe',btn_create_group:'Créer',group_photo_btn:'Photo',group_join_ph:'Entrer le code du groupe',btn_join_group:'Rejoindre',group_no_owned:'Tu ne gères encore aucun groupe.',group_no_member:'Tu ne fais encore partie d\'aucun groupe.',group_members_label:'membres',group_members_title:'Membres',group_no_members_yet:'Aucun membre pour le moment.',group_join_error_invalid:'Code invalide.',group_join_error_already:'Tu es déjà dans ce groupe.',group_join_error_own:'Tu ne peux pas rejoindre ton propre groupe.',group_add_failed:"Impossible de rejoindre le groupe. Vérifie le code.",group_leave:'Quitter le groupe',group_delete:'Supprimer le groupe',group_leave_confirm_title:'Quitter le groupe ?',group_leave_confirm_msg:"Tu perdras l'accès à ce groupe jusqu'à ce que tu le rejoignes à nouveau avec le code.",group_delete_confirm_title:'Supprimer le groupe ?',group_delete_confirm_msg:"Le groupe sera supprimé et l'accès révoqué pour tous les membres. Cette action est irréversible.",group_remove_member_confirm_title:'Retirer ce membre ?',group_remove_member_confirm_msg:"Il perdra l'accès jusqu'à ce qu'il rejoigne à nouveau avec le code du groupe.",account_change_password:'Changer le mot de passe',account_current_password:'Mot de passe actuel',account_new_password:'Nouveau mot de passe',btn_change_password:'Changer le mot de passe',password_changed_note:'Mot de passe modifié.',account_delete_account:'Supprimer le compte',mydata_title:'Mes données',mydata_intro:'Enregistre une sauvegarde de tous tes entraînements et courses sous forme de fichier, ou restaure tes données à partir d\'une sauvegarde précédente.',mydata_export:'Exporter mes données',mydata_import:'Importer depuis une sauvegarde',mydata_import_success:'Import terminé : {a} ajouté(s), {u} mis à jour.',mydata_import_error:'Ce fichier ne semble pas être une sauvegarde ShootStats valide.',account_delete_password_label:'Entre ton mot de passe pour confirmer',btn_delete_account:'Supprimer le compte',delete_account_confirm_title:'Supprimer le compte ?',delete_account_confirm_msg:"Ton compte et toutes tes données seront supprimés définitivement. Cette action est irréversible.",confirm_cancel:'Annuler',confirm_ok:'Confirmer',err_wrong_password:'Mot de passe incorrect.'},
 es:{tab_all:'Todo',tab_races:'Carreras',tab_trainings:'Entrenamientos',stat_overall:'Éxito global',stat_avgtime:'Tiempo medio por serie',stat_by_intensity:'Éxito por intensidad',stat_time_by_intensity:'Tiempo medio por intensidad',stat_missmap:'Blanco',stat_missmap_empty:'Aún no hay datos de disparos',btn_new_entry:'Nueva entrada',sheet_new_training:'Nuevo entrenamiento',sheet_new_race:'Nueva carrera',sheet_edit_training:'Editar entrenamiento',sheet_edit_race:'Editar carrera',lbl_type:'Tipo',type_training:'Entrenamiento',type_race:'Carrera',lbl_date:'Fecha',lbl_place:'Lugar',ph_place:'Escribe un lugar',lbl_race_type:'Tipo de carrera',ph_race_type_other:'Escribe el tipo de carrera',lbl_description:'Descripción',ph_description:'Nota breve, ej. series...',lbl_items:'Series de tiro',builder_title:'Nueva serie',lbl_position:'Posición',pos_prone:'Tendido',pos_standing:'De pie',lbl_intensity:'Intensidad',int_rest:'Descanso',int_race:'Carrera',lbl_wind:'Viento',lbl_time:'Tiempo de tiro',lbl_first_shot_time:'Tiempo del primer disparo',ph_seconds:'segundos',lbl_success:'Fallos (0 = 5/5)',lbl_miss_directions:'Posiciones de los disparos',miss_directions_hint:'Toca para marcar los 5 disparos en el blanco',btn_add_item:'+ Añadir serie',btn_save_entry:'Guardar entrada',btn_save_changes:'Guardar cambios',btn_cancel:'Cancelar',btn_delete:'Eliminar entrada',hint_addhome:'Consejo: abre esta página en tu móvil y elige "Añadir a pantalla de inicio" en el menú del navegador — la app se abrirá a pantalla completa como una app normal.',empty_title:'Aún no hay entradas.<br>Añade tu primer entrenamiento o carrera.',meta_items:'series',meta_success:'éxito',no_data_dash:'—',clock_title:'Posiciones de los disparos',clock_count_label:'Marcados',btn_undo:'Deshacer',btn_reset:'Reiniciar',btn_done:'Listo',settings_title:'Ajustes',settings_training_places:'Lugares de entrenamiento favoritos',settings_race_places:'Lugares de carrera favoritos',ph_new_place:'Nombre del lugar',btn_add:'Añadir',lang_title:'Idioma',alert_required_prefix:'Rellena los campos obligatorios:',btn_trend:'Tendencia de éxito',btn_overview:'Resumen',gran_month:'Meses',gran_week:'Semanas',lbl_show_series:'Mostrar',trend_overall:'General',trend_empty:'Aún no hay suficientes datos para un gráfico',alert_title:'Información faltante',account_remember:'Recordarme en este dispositivo',account_forgot:'¿Olvidaste tu contraseña?',account_forgot_intro:'Introduce el correo con el que te registraste — te enviaremos un enlace para crear una nueva contraseña.',account_forgot_send:'Enviar enlace',account_back_to_login:'Volver a iniciar sesión',account_forgot_sent:'Revisa tu correo para ver el enlace.',sync_error:'No se pudo sincronizar con el servidor — comprueba tu conexión.',profile_intro:'Solo unos datos más para terminar de configurar tu cuenta.',profile_first_name:'Nombre',profile_last_name:'Apellidos',profile_dob:'Fecha de nacimiento',profile_country:'País',profile_club:'Club',profile_save:'Guardar y continuar',profile_fill_required:'Rellena todos los campos obligatorios.',account_club_saved:'Guardado',account_intro:'Inicia sesión para sincronizar tus tiros entre dispositivos y compartirlos con un entrenador.',account_email:'Correo electrónico',account_password:'Contraseña',account_login:'Iniciar sesión',account_signup:'Crear cuenta',account_or:'o',account_google:'Continuar con Google',account_switch_to_signup:'¿No tienes cuenta? Crea una',account_switch_to_login:'¿Ya tienes cuenta? Inicia sesión',account_guest:'Continuar sin cuenta',account_title:'Cuenta',account_your_code:'Tu código de deportista',account_copy:'Copiar',account_code_hint:'Comparte este código con tu entrenador para que pueda seguir tus tiros.',account_athletes:'Deportistas que sigues',account_athlete_code_ph:'Pega el código del deportista',account_no_athletes:'Todavía no sigues a nadie.',account_view:'Ver',account_viewing:'Viendo',account_viewing_prefix:'Viendo:',account_back_to_mine:'Volver a mis datos',account_cant_add_self:'No puedes añadirte a ti mismo.',account_add_failed:'No se pudo añadir a este deportista. Revisa el código.',account_logout:'Cerrar sesión',account_fill_both:'Introduce un correo y una contraseña.',account_err_credentials:'Correo o contraseña incorrectos.',account_err_in_use:'Ese correo ya está registrado.',account_err_weak:'La contraseña debe tener al menos 6 caracteres.',account_err_generic:'Algo salió mal. Inténtalo de nuevo.',account_locked_out:'Demasiados intentos fallidos. Vuelve a intentarlo en {n} min.',account_groups_owned:'Grupos que administras',account_groups_member:'Grupos en los que estás',group_name_ph:'Nombre del grupo',btn_create_group:'Crear',group_photo_btn:'Foto',group_join_ph:'Introduce el código del grupo',btn_join_group:'Unirse',group_no_owned:'Todavía no administras ningún grupo.',group_no_member:'Todavía no estás en ningún grupo.',group_members_label:'miembros',group_members_title:'Miembros',group_no_members_yet:'Aún no hay miembros.',group_join_error_invalid:'Código no válido.',group_join_error_already:'Ya estás en este grupo.',group_join_error_own:'No puedes unirte a tu propio grupo.',group_add_failed:'No se pudo unir al grupo. Revisa el código.',group_leave:'Salir del grupo',group_delete:'Eliminar grupo',group_leave_confirm_title:'¿Salir del grupo?',group_leave_confirm_msg:'Perderás el acceso a este grupo hasta que vuelvas a unirte con el código.',group_delete_confirm_title:'¿Eliminar grupo?',group_delete_confirm_msg:'El grupo se eliminará y se revocará el acceso de todos los miembros. Esta acción no se puede deshacer.',group_remove_member_confirm_title:'¿Eliminar miembro?',group_remove_member_confirm_msg:'Perderá el acceso hasta que vuelva a unirse con el código del grupo.',account_change_password:'Cambiar contraseña',account_current_password:'Contraseña actual',account_new_password:'Nueva contraseña',btn_change_password:'Cambiar contraseña',password_changed_note:'Contraseña cambiada.',account_delete_account:'Eliminar cuenta',mydata_title:'Mis datos',mydata_intro:'Guarda una copia de seguridad de todos tus entrenamientos y carreras como archivo, o restaura tus datos desde una copia anterior.',mydata_export:'Exportar mis datos',mydata_import:'Importar desde una copia de seguridad',mydata_import_success:'Importación completada: {a} añadidos, {u} actualizados.',mydata_import_error:'Este archivo no parece ser una copia de seguridad válida de ShootStats.',account_delete_password_label:'Introduce tu contraseña para confirmar',btn_delete_account:'Eliminar cuenta',delete_account_confirm_title:'¿Eliminar cuenta?',delete_account_confirm_msg:'Tu cuenta y todos tus datos se eliminarán permanentemente. Esta acción no se puede deshacer.',confirm_cancel:'Cancelar',confirm_ok:'Confirmar',err_wrong_password:'Contraseña incorrecta.'},
@@ -3217,6 +3369,9 @@ async function renderGroupDetail(){
 
   document.getElementById('groupLeaveBtn').style.display = role==='member' ? 'block' : 'none';
   document.getElementById('groupDeleteBtn').style.display = role==='owner' ? 'block' : 'none';
+
+  document.getElementById('liveTrainingsSection').style.display = role==='owner' ? 'block' : 'none';
+  if(role==='owner') await renderLiveTrainingsList(gid);
 }
 
 document.getElementById('groupDetailCopyCode').onclick = ()=>{
@@ -3583,7 +3738,15 @@ async function renderCoachHome(){
       }
       card.classList.add('open');
       panel.style.display = 'block';
-      panel.innerHTML = `<div class="account-note">${t('coach_no_athletes_yet')}</div>`;
+      const liveBtnHtml = `<button type="button" class="live-training-btn" data-gid="${gid}">${liveTrainingIconSvg()}${t('live_training_start')}</button>`;
+      const wireLiveBtn = ()=>{
+        const b = panel.querySelector('.live-training-btn');
+        if(b) b.onclick = (e)=>{ e.stopPropagation(); const g = ownedGroups.find(x=>x.id===gid); openLiveTraining(gid, g ? g.name : '', 'coachHomeLiveTrainings-'+gid); };
+      };
+      const liveTrainingsWrapHtml = `<div class="settings-section"><legend data-i18n="live_trainings_list_title">Live trainings</legend><div id="coachHomeLiveTrainings-${gid}" class="live-trainings-list"></div></div>`;
+      panel.innerHTML = liveBtnHtml + `<div class="account-note">${t('coach_no_athletes_yet')}</div>` + liveTrainingsWrapHtml;
+      wireLiveBtn();
+      renderLiveTrainingsList(gid, 'coachHomeLiveTrainings-'+gid);
       let gsnap;
       try{ gsnap = await fbDb.ref('groups/'+gid+'/members').once('value'); }catch(e){ gsnap = null; }
       const memberIds = Object.keys((gsnap && gsnap.val()) || {});
@@ -3602,7 +3765,7 @@ async function renderCoachHome(){
         const acc = await fetchMemberAccuracy(uid);
         rows.push({ uid, label, photo, acc });
       }
-      panel.innerHTML = rows.map(m=>`
+      panel.innerHTML = liveBtnHtml + rows.map(m=>`
         <div class="group-member-row-acc" data-uid="${m.uid}" data-label="${escapeHtml(m.label)}">
           <div class="who">${memberAvatarHtml(m.photo, m.label)}<span>${escapeHtml(m.label)}</span></div>
           <div class="member-acc-stats">
@@ -3610,7 +3773,9 @@ async function renderCoachHome(){
             <div><b>${m.acc.stojka!==null ? m.acc.stojka+'%' : t('no_data_dash')}</b><span>${t('pos_standing')}</span></div>
             <div><b>${m.acc.overall!==null ? m.acc.overall+'%' : t('no_data_dash')}</b><span>${t('stat_overall')}</span></div>
           </div>
-        </div>`).join('');
+        </div>`).join('') + liveTrainingsWrapHtml;
+      wireLiveBtn();
+      renderLiveTrainingsList(gid, 'coachHomeLiveTrainings-'+gid);
       panel.querySelectorAll('.group-member-row-acc').forEach(row=>{
         row.onclick = async ()=>{
           viewingUid = row.dataset.uid;
@@ -3622,6 +3787,574 @@ async function renderCoachHome(){
         };
       });
     };
+  });
+}
+
+/* =====================================================
+   Live training (coach records bouts for a group live,
+   during a real session). Saved privately under the
+   coach's own users/{uid}/groupTrainings — never written
+   into an athlete's data (see database.rules.v2.json).
+===================================================== */
+let liveTraining = null; // null when the sheet is closed
+let liveTrainingTickTimer = null;
+let liveBoutActiveUid = null;
+let liveBoutClockHours = [];
+let liveBoutClockMax = 0;
+let liveBoutPendingPosition = null;
+let liveBoutEditUid = null;
+let liveBoutEditIdx = null;
+let liveBoutEditHours = [];
+let liveBoutEditMissCount = 0;
+
+function liveTrainingIconSvg(){
+  return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;"><circle cx="12" cy="13" r="8" stroke="currentColor" stroke-width="1.8"/><path d="M12 9v4l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 2h6M12 2v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+}
+
+function liveClockHourXY(hour){
+  const rad = (hour % 12) * 30 * Math.PI / 180;
+  const r = 1.15; // just outside the target ring, same space as the regular shot picker
+  return { x: Math.sin(rad) * r, y: -Math.cos(rad) * r };
+}
+
+async function buildLiveTrainingAthletes(gid){
+  const snap = await fbDb.ref('groups/'+gid+'/members').once('value');
+  const memberIds = Object.keys(snap.val() || {});
+  const athletes = {};
+  for(const uid of memberIds){
+    let label = uid.slice(0,8) + '…';
+    let photo = '';
+    try{
+      const p = await fetchProfile(uid);
+      const nm = [p.firstName, p.lastName].filter(Boolean).join(' ');
+      if(nm) label = nm; else if(p.email) label = p.email;
+      photo = p.photo || '';
+    }catch(e){ /* fallback stays */ }
+    athletes[uid] = { label, photo, bouts: [], timer: { state: 'idle', startTime: null, firstShotTime: null, lastTotalTime: null } };
+  }
+  return athletes;
+}
+
+function openLiveTrainingSheetUi(){
+  document.getElementById('liveTrainingToast').classList.remove('show', 'success');
+  updateLiveTrainingCloseVisibility();
+  renderLiveTrainingAthletes();
+
+  document.getElementById('liveTrainingOverlay').classList.add('open');
+  document.getElementById('liveTrainingSheet').classList.add('open');
+
+  if(liveTrainingTickTimer) clearInterval(liveTrainingTickTimer);
+  liveTrainingTickTimer = setInterval(liveTrainingTick, 100);
+}
+
+async function openLiveTraining(gid, groupName, refreshWrapId){
+  if(!currentUser) return;
+  let athletes;
+  try{ athletes = await buildLiveTrainingAthletes(gid); }catch(e){ showSyncError(); return; }
+
+  liveTraining = { gid, groupName, date: null, athletes, editId: null, refreshWrapId: refreshWrapId || null };
+  document.getElementById('liveTrainingName').value = '';
+  openLiveTrainingSheetUi();
+}
+
+async function openLiveTrainingForEdit(trainingId, gid, groupName, refreshWrapId){
+  if(!currentUser) return;
+  let record;
+  try{
+    const snap = await fbDb.ref('users/'+currentUser.uid+'/groupTrainings/'+trainingId).once('value');
+    record = snap.val();
+  }catch(e){ showSyncError(); return; }
+  if(!record) return;
+
+  let athletes;
+  try{ athletes = await buildLiveTrainingAthletes(record.groupId || gid); }catch(e){ athletes = {}; }
+
+  const savedAthletes = record.athletes || {};
+  Object.keys(savedAthletes).forEach(suid=>{
+    const saved = savedAthletes[suid];
+    const bouts = (saved.bouts || []).map(b=>({ ...b }));
+    if(athletes[suid]) athletes[suid].bouts = bouts;
+    else athletes[suid] = { label: saved.label || suid.slice(0,8)+'…', photo: '', bouts, timer: { state: 'idle', startTime: null, firstShotTime: null, lastTotalTime: null } };
+  });
+
+  liveTraining = {
+    gid: record.groupId || gid,
+    groupName: record.groupName || groupName,
+    date: record.date || null,
+    athletes,
+    editId: trainingId,
+    refreshWrapId: refreshWrapId || null
+  };
+  document.getElementById('liveTrainingName').value = record.name || '';
+  openLiveTrainingSheetUi();
+}
+
+function liveTrainingTick(){
+  if(!liveTraining) return;
+  Object.keys(liveTraining.athletes).forEach(uid=>{
+    const st = liveTraining.athletes[uid].timer;
+    if((st.state==='running' || st.state==='first') && !st.frozen){
+      const el = document.getElementById('liveElapsed-'+uid);
+      if(el) el.textContent = ((Date.now() - st.startTime) / 1000).toFixed(1) + 's';
+    }
+  });
+}
+
+function renderLiveTrainingAthletes(){
+  if(!liveTraining) return;
+  const wrap = document.getElementById('liveTrainingAthletes');
+  const uids = Object.keys(liveTraining.athletes);
+  if(uids.length===0){
+    wrap.innerHTML = `<div class="account-note">${t('coach_no_athletes_yet')}</div>`;
+    return;
+  }
+  wrap.innerHTML = uids.map(uid=>liveAthleteRowHtml(uid)).join('');
+  wrap.querySelectorAll('[data-live-shot-btn]').forEach(btn=>{
+    btn.onclick = ()=> liveShotBtnClick(btn.dataset.liveShotBtn);
+  });
+  wrap.querySelectorAll('.live-bout-chip').forEach(chip=>{
+    chip.onclick = (e)=>{
+      if(e.target.closest('.live-bout-del-btn')) return;
+      openBoutEditSheet(chip.dataset.uid, parseInt(chip.dataset.idx));
+    };
+  });
+  wrap.querySelectorAll('.live-bout-del-btn').forEach(btn=>{
+    btn.onclick = (e)=>{ e.stopPropagation(); requestRemoveLiveBout(btn.dataset.uid, parseInt(btn.dataset.idx)); };
+  });
+  updateLiveTrainingCloseVisibility();
+}
+
+function liveAthleteRowHtml(uid){
+  const a = liveTraining.athletes[uid];
+  const st = a.timer.state;
+  let btnLabel = t('live_shot_start');
+  if(st==='running') btnLabel = t('live_shot_first');
+  else if(st==='first') btnLabel = t('live_shot_last');
+  const elapsedHtml = (st==='running' || st==='first')
+    ? `<span class="live-elapsed" id="liveElapsed-${uid}">0.0s</span>` : '';
+  const boutsHtml = a.bouts.length ? `<div class="live-bouts-list">${a.bouts.map((b,idx)=>`
+    <span class="live-bout-chip" data-uid="${uid}" data-idx="${idx}"><b>${b.position==null ? '?' : (b.position==='stojka' ? 'S' : 'P')}</b> · M${b.missCount}${b.time!==null ? ' · '+b.time.toFixed(1)+'s' : ''}
+      <button type="button" class="live-bout-del-btn" data-uid="${uid}" data-idx="${idx}" title="✕">✕</button>
+    </span>`).join('')}</div>` : '';
+  return `
+    <div class="live-athlete-row">
+      <div class="live-athlete-row-top">
+        <div class="who">${memberAvatarHtml(a.photo, a.label)}<span>${escapeHtml(a.label)}</span></div>
+        <div class="live-athlete-main">
+          <button type="button" class="live-shot-btn ${st==='running'?'running':st==='first'?'first':''}" data-live-shot-btn="${uid}">${btnLabel}</button>
+          ${elapsedHtml}
+          ${a.bouts.length ? `<span class="live-bout-count">${a.bouts.length} ${t('live_bouts_label')}</span>` : ''}
+        </div>
+      </div>
+      ${boutsHtml}
+    </div>`;
+}
+
+function liveShotBtnClick(uid){
+  const a = liveTraining.athletes[uid];
+  if(!a) return;
+  const st = a.timer;
+  if(st.state==='idle'){
+    st.state = 'running';
+    st.startTime = Date.now();
+    st.firstShotTime = null;
+    st.frozen = false;
+  } else if(st.state==='running'){
+    st.firstShotTime = (Date.now() - st.startTime) / 1000;
+    st.state = 'first';
+  } else if(st.state==='first'){
+    st.lastTotalTime = (Date.now() - st.startTime) / 1000;
+    st.frozen = true;
+    openBoutPosSheet(uid);
+    return; // row re-renders once the position/score/clock flow commits the bout
+  }
+  renderLiveTrainingAthletes();
+}
+
+function openBoutPosSheet(uid){
+  liveBoutActiveUid = uid;
+  document.querySelectorAll('#liveBoutPosRow .pos-btn').forEach(b=>b.classList.remove('sel'));
+  document.getElementById('liveBoutPosIconLezka').innerHTML = iconMarkup('lezka', 40, 19, 'currentColor');
+  document.getElementById('liveBoutPosIconStojka').innerHTML = iconMarkup('stojka', 21, 24, 'currentColor');
+  document.getElementById('liveBoutPosOverlay').classList.add('open');
+  document.getElementById('liveBoutPosSheet').classList.add('open');
+}
+
+function closeBoutPosSheet(){
+  document.getElementById('liveBoutPosOverlay').classList.remove('open');
+  document.getElementById('liveBoutPosSheet').classList.remove('open');
+}
+
+document.getElementById('liveBoutPosRow').addEventListener('click', e=>{
+  const b = e.target.closest('.pos-btn'); if(!b) return;
+  closeBoutPosSheet();
+  openBoutScoreSheet(liveBoutActiveUid, b.dataset.val);
+});
+document.getElementById('liveBoutPosClose').onclick = closeBoutPosSheet;
+document.getElementById('liveBoutPosOverlay').onclick = closeBoutPosSheet;
+document.getElementById('liveBoutPosSaveBtn').onclick = ()=>{
+  closeBoutPosSheet();
+  commitLiveBout(liveBoutActiveUid, 0, [], null);
+};
+
+function openBoutScoreSheet(uid, position){
+  liveBoutActiveUid = uid;
+  liveBoutPendingPosition = position;
+  const row = document.getElementById('liveBoutScoreRow');
+  row.innerHTML = '';
+  for(let n=0;n<=5;n++){
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pick-btn';
+    btn.innerHTML = pickIcon('misses', n, false) + `<span>${n}</span>`;
+    btn.onclick = ()=> chooseBoutMissCount(n);
+    row.appendChild(btn);
+  }
+  document.getElementById('liveBoutScoreOverlay').classList.add('open');
+  document.getElementById('liveBoutScoreSheet').classList.add('open');
+}
+
+function closeBoutScoreSheet(){
+  document.getElementById('liveBoutScoreOverlay').classList.remove('open');
+  document.getElementById('liveBoutScoreSheet').classList.remove('open');
+}
+
+function chooseBoutMissCount(n){
+  closeBoutScoreSheet();
+  if(n===0) commitLiveBout(liveBoutActiveUid, 0, [], liveBoutPendingPosition);
+  else openBoutClockSheet(liveBoutActiveUid, n);
+}
+
+document.getElementById('liveBoutScoreSaveBtn').onclick = ()=>{
+  closeBoutScoreSheet();
+  commitLiveBout(liveBoutActiveUid, 0, [], liveBoutPendingPosition);
+};
+
+document.getElementById('liveBoutScoreClose').onclick = closeBoutScoreSheet;
+document.getElementById('liveBoutScoreOverlay').onclick = closeBoutScoreSheet;
+
+function openBoutClockSheet(uid, missCount){
+  liveBoutActiveUid = uid;
+  liveBoutClockHours = [];
+  liveBoutClockMax = missCount;
+  document.getElementById('liveBoutClockMax').textContent = String(missCount);
+  renderLiveBoutClockSvg();
+  document.getElementById('liveBoutClockOverlay').classList.add('open');
+  document.getElementById('liveBoutClockSheet').classList.add('open');
+}
+
+function closeBoutClockSheet(){
+  document.getElementById('liveBoutClockOverlay').classList.remove('open');
+  document.getElementById('liveBoutClockSheet').classList.remove('open');
+}
+
+function renderClockFaceSvg(svgId, hours, countLabelId, size){
+  size = size || 220;
+  const cx = size/2, cy = size/2, R = size/2*0.66;
+  let html = targetBackgroundSvg(size) + targetBoundaryRingSvg(size);
+  for(let h=1; h<=12; h++){
+    const p = liveClockHourXY(h);
+    const px = cx + p.x*R, py = cy + p.y*R;
+    const count = hours.filter(x=>x===h).length;
+    const sel = count>0;
+    html += `<g class="live-clock-pt" data-hour="${h}">
+      <circle cx="${px}" cy="${py}" r="15" fill="${sel?'var(--race)':'var(--surface-2)'}" stroke="${sel?'var(--race)':'var(--ink-soft)'}" stroke-width="1.4"/>
+      <text x="${px}" y="${py+4.5}" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11.5" font-weight="700" fill="${sel?'#fff':'var(--ink-soft)'}">${h}</text>
+      ${count>1 ? `<circle cx="${px+11}" cy="${py-11}" r="7.5" fill="var(--ink)" stroke="var(--bg)" stroke-width="1.2"/><text x="${px+11}" y="${py-11+3}" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9" font-weight="700" fill="var(--bg)">${count}</text>` : ''}
+    </g>`;
+  }
+  document.getElementById(svgId).innerHTML = html;
+  if(countLabelId) document.getElementById(countLabelId).textContent = String(hours.length);
+}
+
+function renderLiveBoutClockSvg(){
+  renderClockFaceSvg('liveBoutClockSvg', liveBoutClockHours, 'liveBoutClockCount');
+}
+
+document.getElementById('liveBoutClockSvg').addEventListener('click', e=>{
+  const g = e.target.closest('.live-clock-pt'); if(!g) return;
+  const hour = parseInt(g.dataset.hour);
+  if(liveBoutClockHours.length < liveBoutClockMax) liveBoutClockHours.push(hour);
+  renderLiveBoutClockSvg();
+});
+
+document.getElementById('liveBoutClockReset').onclick = ()=>{
+  liveBoutClockHours = [];
+  renderLiveBoutClockSvg();
+};
+
+function finishBoutClock(){
+  closeBoutClockSheet();
+  commitLiveBout(liveBoutActiveUid, liveBoutClockMax, liveBoutClockHours.slice(), liveBoutPendingPosition);
+}
+document.getElementById('liveBoutClockDone').onclick = finishBoutClock;
+document.getElementById('liveBoutClockClose').onclick = finishBoutClock;
+document.getElementById('liveBoutClockOverlay').onclick = finishBoutClock;
+
+function hoursToShots(hours){
+  const shots = [null,null,null,null,null];
+  hours.forEach((h,i)=>{
+    if(i>=5) return;
+    shots[i] = liveClockHourXY(h);
+  });
+  return shots;
+}
+
+function shotsToHours(shots){
+  const clockHours = [1,2,3,4,5,6,7,8,9,10,11,12].map(h=>({ h, p: liveClockHourXY(h) }));
+  return (shots||[]).filter(Boolean).map(s=>{
+    let best = clockHours[0];
+    let bestD = Infinity;
+    clockHours.forEach(c=>{
+      const d = (c.p.x-s.x)*(c.p.x-s.x) + (c.p.y-s.y)*(c.p.y-s.y);
+      if(d<bestD){ bestD = d; best = c; }
+    });
+    return best.h;
+  });
+}
+
+function commitLiveBout(uid, missCount, hours, position){
+  if(!liveTraining) return;
+  const a = liveTraining.athletes[uid];
+  if(!a) return;
+  a.bouts.push({
+    missCount,
+    shots: hoursToShots(hours),
+    position,
+    time: a.timer.lastTotalTime,
+    firstShotTime: a.timer.firstShotTime
+  });
+  a.timer = { state: 'idle', startTime: null, firstShotTime: null, lastTotalTime: null };
+  renderLiveTrainingAthletes();
+}
+
+function removeLiveBout(uid, idx){
+  if(!liveTraining) return;
+  const a = liveTraining.athletes[uid];
+  if(!a) return;
+  a.bouts.splice(idx, 1);
+  renderLiveTrainingAthletes();
+}
+
+async function requestRemoveLiveBout(uid, idx){
+  const ok = await showConfirm(t('live_bout_delete_confirm_title'), t('live_bout_delete_confirm_msg'));
+  if(!ok) return;
+  removeLiveBout(uid, idx);
+}
+
+function openBoutEditSheet(uid, idx){
+  if(!liveTraining) return;
+  const a = liveTraining.athletes[uid];
+  const b = a && a.bouts[idx];
+  if(!b) return;
+  liveBoutEditUid = uid;
+  liveBoutEditIdx = idx;
+  liveBoutEditMissCount = b.missCount;
+  liveBoutEditHours = shotsToHours(b.shots);
+
+  renderBoutEditScoreRow();
+  document.querySelectorAll('#liveBoutEditPosRow .pos-btn').forEach(x=>{
+    x.classList.toggle('sel', x.dataset.val===b.position);
+  });
+  document.getElementById('liveBoutEditPosIconLezka').innerHTML = iconMarkup('lezka', 40, 19, 'currentColor');
+  document.getElementById('liveBoutEditPosIconStojka').innerHTML = iconMarkup('stojka', 21, 24, 'currentColor');
+  document.getElementById('liveBoutEditClockMax').textContent = String(liveBoutEditMissCount);
+  renderLiveBoutEditClockSvg();
+  document.getElementById('liveBoutEditTime').value = b.time!==null && b.time!==undefined ? b.time.toFixed(1) : '';
+  document.getElementById('liveBoutEditFirstTime').value = b.firstShotTime!==null && b.firstShotTime!==undefined ? b.firstShotTime.toFixed(1) : '';
+
+  document.getElementById('liveBoutEditOverlay').classList.add('open');
+  document.getElementById('liveBoutEditSheet').classList.add('open');
+}
+
+function closeBoutEditSheet(){
+  document.getElementById('liveBoutEditOverlay').classList.remove('open');
+  document.getElementById('liveBoutEditSheet').classList.remove('open');
+}
+document.getElementById('liveBoutEditClose').onclick = closeBoutEditSheet;
+document.getElementById('liveBoutEditOverlay').onclick = closeBoutEditSheet;
+
+function renderBoutEditScoreRow(){
+  const row = document.getElementById('liveBoutEditScoreRow');
+  row.innerHTML = '';
+  for(let n=0;n<=5;n++){
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pick-btn' + (liveBoutEditMissCount===n ? ' sel' : '');
+    btn.innerHTML = pickIcon('misses', n, liveBoutEditMissCount===n) + `<span>${n}</span>`;
+    btn.onclick = ()=>{
+      liveBoutEditMissCount = n;
+      if(liveBoutEditHours.length > n) liveBoutEditHours = liveBoutEditHours.slice(0, n);
+      renderBoutEditScoreRow();
+      document.getElementById('liveBoutEditClockMax').textContent = String(n);
+      renderLiveBoutEditClockSvg();
+    };
+    row.appendChild(btn);
+  }
+}
+
+function renderLiveBoutEditClockSvg(){
+  renderClockFaceSvg('liveBoutEditClockSvg', liveBoutEditHours, 'liveBoutEditClockCount', 180);
+}
+
+document.getElementById('liveBoutEditClockSvg').addEventListener('click', e=>{
+  const g = e.target.closest('.live-clock-pt'); if(!g) return;
+  const hour = parseInt(g.dataset.hour);
+  if(liveBoutEditHours.length < liveBoutEditMissCount) liveBoutEditHours.push(hour);
+  renderLiveBoutEditClockSvg();
+});
+
+document.getElementById('liveBoutEditClockReset').onclick = ()=>{
+  liveBoutEditHours = [];
+  renderLiveBoutEditClockSvg();
+};
+
+document.getElementById('liveBoutEditPosRow').addEventListener('click', e=>{
+  const b = e.target.closest('.pos-btn'); if(!b) return;
+  document.querySelectorAll('#liveBoutEditPosRow .pos-btn').forEach(x=>x.classList.remove('sel'));
+  b.classList.add('sel');
+});
+
+document.getElementById('liveBoutEditSaveBtn').onclick = ()=>{
+  if(!liveTraining) return;
+  const a = liveTraining.athletes[liveBoutEditUid];
+  const b = a && a.bouts[liveBoutEditIdx];
+  if(!b) return;
+  const posBtn = document.querySelector('#liveBoutEditPosRow .pos-btn.sel');
+  const timeVal = parseFloat(document.getElementById('liveBoutEditTime').value);
+  const firstVal = parseFloat(document.getElementById('liveBoutEditFirstTime').value);
+  b.missCount = liveBoutEditMissCount;
+  b.shots = hoursToShots(liveBoutEditHours);
+  b.position = posBtn ? posBtn.dataset.val : b.position;
+  b.time = isNaN(timeVal) ? null : timeVal;
+  b.firstShotTime = isNaN(firstVal) ? null : firstVal;
+  closeBoutEditSheet();
+  renderLiveTrainingAthletes();
+};
+
+function liveTrainingHasData(){
+  if(!liveTraining) return false;
+  return Object.values(liveTraining.athletes).some(a=>a.bouts.length>0) || !!document.getElementById('liveTrainingName').value.trim();
+}
+
+function updateLiveTrainingCloseVisibility(){
+  if(!liveTraining) return;
+  const hasData = liveTrainingHasData();
+  const discardBtn = document.getElementById('liveTrainingDiscardBtn');
+  discardBtn.style.display = hasData ? 'block' : 'none';
+  discardBtn.textContent = liveTraining.editId ? t('live_training_delete') : t('live_training_discard');
+}
+
+document.getElementById('liveTrainingName').addEventListener('input', updateLiveTrainingCloseVisibility);
+
+async function closeLiveTrainingRequest(){
+  if(liveTrainingHasData()){
+    const ok = await showConfirm(t('live_training_close_confirm_title'), t('live_training_close_confirm_msg'));
+    if(!ok) return;
+  }
+  closeLiveTrainingForce();
+}
+
+function closeLiveTrainingForce(){
+  if(liveTrainingTickTimer){ clearInterval(liveTrainingTickTimer); liveTrainingTickTimer = null; }
+  liveTraining = null;
+  document.getElementById('liveTrainingOverlay').classList.remove('open');
+  document.getElementById('liveTrainingSheet').classList.remove('open');
+}
+
+document.getElementById('liveTrainingOverlay').onclick = closeLiveTrainingRequest;
+
+document.getElementById('liveTrainingDiscardBtn').onclick = async ()=>{
+  if(!liveTraining || !currentUser) return;
+  if(liveTraining.editId){
+    const ok = await showConfirm(t('live_training_delete_confirm_title'), t('live_training_delete_confirm_msg'));
+    if(!ok) return;
+    const gid = liveTraining.gid, wrapId = liveTraining.refreshWrapId, editId = liveTraining.editId;
+    try{ await fbDb.ref('users/'+currentUser.uid+'/groupTrainings/'+editId).remove(); }catch(e){ showSyncError(); return; }
+    closeLiveTrainingForce();
+    if(wrapId) renderLiveTrainingsList(gid, wrapId);
+  } else {
+    const ok = await showConfirm(t('live_training_close_confirm_title'), t('live_training_close_confirm_msg'));
+    if(!ok) return;
+    closeLiveTrainingForce();
+  }
+};
+
+function showLiveTrainingToast(msg){
+  const el = document.getElementById('liveTrainingToast');
+  el.textContent = msg;
+  el.classList.add('show', 'success');
+  clearTimeout(showLiveTrainingToast._t);
+  showLiveTrainingToast._t = setTimeout(()=>el.classList.remove('show'), 2500);
+}
+
+async function saveLiveTraining(){
+  if(!liveTraining || !currentUser) return;
+  const name = document.getElementById('liveTrainingName').value.trim();
+  const totalBouts = Object.values(liveTraining.athletes).reduce((n,a)=>n+a.bouts.length, 0);
+  const missing = [];
+  if(!name) missing.push(t('live_training_name_label'));
+  if(totalBouts===0) missing.push(t('live_training_need_bout'));
+  if(missing.length){ showAlert(missing); return; }
+
+  const confirmed = await showConfirm(t('live_training_save_confirm_title'), t('live_training_save_confirm_msg'));
+  if(!confirmed) return;
+
+  const athletesOut = {};
+  Object.keys(liveTraining.athletes).forEach(uid=>{
+    const a = liveTraining.athletes[uid];
+    if(a.bouts.length===0) return;
+    athletesOut[uid] = { label: a.label, bouts: a.bouts };
+  });
+
+  const payload = {
+    name,
+    date: liveTraining.date || new Date().toISOString().slice(0,10),
+    groupId: liveTraining.gid,
+    groupName: liveTraining.groupName || '',
+    athletes: athletesOut
+  };
+
+  const gid = liveTraining.gid, wrapId = liveTraining.refreshWrapId, editId = liveTraining.editId;
+
+  try{
+    if(editId) await fbDb.ref('users/'+currentUser.uid+'/groupTrainings/'+editId).set(payload);
+    else await fbDb.ref('users/'+currentUser.uid+'/groupTrainings').push(payload);
+  }catch(e){ showSyncError(); return; }
+
+  showLiveTrainingToast(t('account_club_saved'));
+  setTimeout(closeLiveTrainingForce, 700);
+  if(wrapId) renderLiveTrainingsList(gid, wrapId);
+}
+
+document.getElementById('liveTrainingSaveBtn').onclick = saveLiveTraining;
+
+async function renderLiveTrainingsList(gid, wrapId){
+  const wrap = document.getElementById(wrapId || 'liveTrainingsListWrap');
+  if(!wrap) return;
+  if(!currentUser){ wrap.innerHTML = ''; return; }
+  let list = [];
+  try{
+    const snap = await fbDb.ref('users/'+currentUser.uid+'/groupTrainings').once('value');
+    const val = snap.val() || {};
+    list = Object.keys(val).map(id=>({ id, ...val[id] })).filter(x=>x.groupId===gid);
+  }catch(e){ list = []; }
+  list.sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  if(list.length===0){
+    wrap.innerHTML = `<div class="account-note">${t('live_trainings_empty')}</div>`;
+    return;
+  }
+  wrap.innerHTML = list.map(lt=>{
+    const athleteCount = Object.keys(lt.athletes||{}).length;
+    const boutCount = Object.values(lt.athletes||{}).reduce((n,a)=>n+((a.bouts||[]).length), 0);
+    return `
+    <div class="live-training-item" data-id="${lt.id}">
+      <div class="live-training-item-name">${escapeHtml(lt.name||'')}</div>
+      <div class="live-training-item-meta">${escapeHtml(lt.date||'')} · ${athleteCount} ${t('group_members_label')} · ${boutCount} ${t('live_bouts_label')}</div>
+    </div>`;
+  }).join('');
+  wrap.querySelectorAll('.live-training-item').forEach(el=>{
+    el.onclick = ()=> openLiveTrainingForEdit(el.dataset.id, gid, null, wrapId || 'liveTrainingsListWrap');
   });
 }
 
