@@ -192,6 +192,54 @@ deny('linked athlete (has coachAccess) still can\'t read the coach\'s groupTrain
 deny('outsider reads a coach\'s groupTrainings',
   freshDb().as(as(OUTSIDER)).read(`users/${COACH}/groupTrainings`));
 
+/* ---- starting state with an incoming training already sitting there ---- */
+function dbWithIncoming() {
+  return targaryen.database(ruleset, {
+    users: {
+      [ATHLETE]: {
+        memberGroups: { g1: true },
+        coachAccess: { [COACH]: true },
+        profile: { email: 'a@example.com', firstName: 'Ann' },
+        sessions: { s1: { hits: 10 } },
+        incomingTrainings: { r1: { fromCoachUid: COACH, name: 'Existing' } }
+      },
+      [COACH]: {
+        ownedGroups: { g1: true },
+        profile: { email: 'c@example.com' }
+      }
+    },
+    groups: {
+      g1: { ownerUid: COACH, name: 'Team', code: 'ABC123', members: { [ATHLETE]: true } }
+    },
+    groupCodes: { ABC123: 'g1' }
+  });
+}
+
+/* ====================================================================== */
+console.log('\nIncoming trainings — a linked coach can offer one, the athlete decides, nobody else can touch it');
+
+allow('linked coach creates an incoming training offer for the athlete',
+  freshDb().as(as(COACH)).write(`users/${ATHLETE}/incomingTrainings/r1`,
+    { fromCoachUid: COACH, fromCoachName: 'Coach', name: 'Pátek večer', date: '2026-10-05', groupName: 'Team', bouts: [] }));
+deny('a coach without coachAccess cannot create an incoming training offer',
+  freshDb().as(as(OUTSIDER)).write(`users/${ATHLETE}/incomingTrainings/r1`,
+    { fromCoachUid: OUTSIDER, name: 'Hacked', bouts: [] }));
+deny('coach cannot overwrite an incoming training that already exists',
+  dbWithIncoming().as(as(COACH)).write(`users/${ATHLETE}/incomingTrainings/r1`,
+    { fromCoachUid: COACH, name: 'Changed', bouts: [] }));
+deny('coach writes an incoming training with no name',
+  freshDb().as(as(COACH)).write(`users/${ATHLETE}/incomingTrainings/r1`,
+    { fromCoachUid: COACH, bouts: [] }));
+deny('coach writes an incoming training under someone else\'s fromCoachUid',
+  freshDb().as(as(COACH)).write(`users/${ATHLETE}/incomingTrainings/r1`,
+    { fromCoachUid: OUTSIDER, name: 'Spoofed', bouts: [] }));
+allow('athlete reads their own incoming trainings',
+  dbWithIncoming().as(as(ATHLETE)).read(`users/${ATHLETE}/incomingTrainings`));
+allow('athlete deletes (accepts/declines) their own incoming training',
+  dbWithIncoming().as(as(ATHLETE)).write(`users/${ATHLETE}/incomingTrainings/r1`, null));
+deny('outsider reads the athlete\'s incoming trainings',
+  dbWithIncoming().as(as(OUTSIDER)).read(`users/${ATHLETE}/incomingTrainings`));
+
 /* ---- result ---------------------------------------------------------- */
 console.log(`\n${passed} passed, ${failed} failed\n`);
 process.exit(failed === 0 ? 0 : 1);

@@ -60,6 +60,14 @@
           "$tid": {
             ".validate": "newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 120"
           }
+        },
+
+        "incomingTrainings": {
+          ".read": "auth != null && auth.uid === $uid",
+          "$rid": {
+            ".write": "auth != null && (auth.uid === $uid || (!data.exists() && root.child('users/' + $uid + '/coachAccess/' + auth.uid).val() === true && newData.child('fromCoachUid').val() === auth.uid))",
+            ".validate": "newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 120"
+          }
         }
       }
     },
